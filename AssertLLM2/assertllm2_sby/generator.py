@@ -14,9 +14,10 @@ from typing import Any, Callable
 from .assertion_parser import cleanup_assertion_file, extract_assertions
 from .manifest import env_flag, redacted_mapping, utc_now_iso, write_json
 from .models import AssertionCandidate, AssertionClassification, GenerationBlocked, GenerationResult, IsolatedWorkspace
+from .paths import PACKAGE_ROOT
 from .runtime_config import generator_defaults
 
-VENDOR_DIR = Path(__file__).resolve().parent.parent / "vendor"
+VENDOR_DIR = PACKAGE_ROOT / "vendor"
 if VENDOR_DIR.is_dir() and str(VENDOR_DIR) not in sys.path:
     sys.path.insert(0, str(VENDOR_DIR))
 
@@ -240,8 +241,8 @@ def generate_assertions(
             "attempts_per_design": 1,
             "thinking": "none",
             "api_version": "2023-06-01",
-            "prompt_template": "assertllm2_sby/generator.py::SPEC_ONLY_SYSTEM_PROMPT",
-            "user_prompt_builder": "assertllm2_sby/generator.py::_build_user_prompt",
+            "prompt_template": "AssertLLM2/assertllm2_sby/generator.py::SPEC_ONLY_SYSTEM_PROMPT",
+            "user_prompt_builder": "AssertLLM2/assertllm2_sby/generator.py::_build_user_prompt",
             "usage": response.get("usage"),
             "syntax_cleanup": cleanup_report,
             "stdout_path": str(outdir / "stdout.txt"),

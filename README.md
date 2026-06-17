@@ -17,8 +17,8 @@ This project is intentionally honest about provenance:
 
 | Path | Purpose |
 | --- | --- |
-| `assertllm2_sby/` | Python package with CLI, generation, formal backend, mutation runner, and report writers |
-| `config/` | Default runtime configuration, with no secrets |
+| `AssertLLM2/assertllm2_sby/` | Python package with CLI, generation, formal backend, mutation runner, and report writers |
+| `AssertLLM2/configs/` | Default runtime configuration, with no secrets |
 | `scripts/` | Environment preflight and validation helpers |
 | `tests/` | Unit and integration tests |
 | `docs/` | Setup, runtime configuration, and project rules |

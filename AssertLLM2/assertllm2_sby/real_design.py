@@ -320,9 +320,9 @@ def model_configuration(gen: GenerationResult) -> dict[str, Any]:
         "api_url_env": "ANTHROPIC_API_URL",
         "api_version": gen.metadata.get("api_version") or "2023-06-01",
         "prompt_template": gen.metadata.get("prompt_template")
-        or "assertllm2_sby/generator.py::SPEC_ONLY_SYSTEM_PROMPT",
+        or "AssertLLM2/assertllm2_sby/generator.py::SPEC_ONLY_SYSTEM_PROMPT",
         "user_prompt_builder": gen.metadata.get("user_prompt_builder")
-        or "assertllm2_sby/generator.py::_build_user_prompt",
+        or "AssertLLM2/assertllm2_sby/generator.py::_build_user_prompt",
         "attempts_per_design": gen.metadata.get("attempts_per_design") or 1,
         "retry_count": gen.metadata.get("retry_count") or 0,
         "thinking": gen.metadata.get("thinking") or "none",

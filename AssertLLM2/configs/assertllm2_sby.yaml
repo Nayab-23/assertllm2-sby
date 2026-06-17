@@ -20,8 +20,8 @@ generator:
   api_version: "2023-06-01"
   enable_cloud_env: ASSERTLLM2_SBY_ENABLE_CLOUD_LLM
   api_key_env: ANTHROPIC_API_KEY
-  prompt_template: assertllm2_sby/generator.py::SPEC_ONLY_SYSTEM_PROMPT
-  user_prompt_builder: assertllm2_sby/generator.py::_build_user_prompt
+  prompt_template: AssertLLM2/assertllm2_sby/generator.py::SPEC_ONLY_SYSTEM_PROMPT
+  user_prompt_builder: AssertLLM2/assertllm2_sby/generator.py::_build_user_prompt
   attempts_per_design: 1
   retry_count: 0
   thinking: none

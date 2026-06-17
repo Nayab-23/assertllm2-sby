@@ -11,8 +11,9 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+SOURCE_ROOT = ROOT / "AssertLLM2"
+if str(SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_ROOT))
 
 from assertllm2_sby.paths import PACKAGE_ROOT, resolve_assertllm2_checkout
 
@@ -94,7 +95,7 @@ def main() -> int:
         status or "clean",
     )
 
-    cfg_path = PACKAGE_ROOT / "config" / "assertllm2_sby.yaml"
+    cfg_path = PACKAGE_ROOT / "AssertLLM2" / "configs" / "assertllm2_sby.yaml"
     cfg = config_values(cfg_path)
     secret_keys = [k for k in cfg if "api_key" in k.lower() and not k.endswith("_env")]
     add_check(checks, "config_present", "PASS" if cfg_path.is_file() else "FAIL", str(cfg_path))

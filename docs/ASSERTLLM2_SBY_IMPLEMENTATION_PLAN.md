@@ -13,7 +13,7 @@ Build **AssertLLM2-SBY**, an open-source adaptation of the AssertLLM2 evaluation
 
 ## Proposed Directory Layout
 
-- `assertllm2_sby/`
+- `AssertLLM2/assertllm2_sby/`
   - `config_loader.py`: read official AssertLLM2 config JSON and normalize design records.
   - `materialize.py`: copy benchmark inputs into immutable per-run work directories.
   - `generator.py`: invoke the bundled assertion generation with the selected prompt context.

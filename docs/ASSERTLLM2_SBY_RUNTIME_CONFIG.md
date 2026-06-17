@@ -1,6 +1,6 @@
 # AssertLLM2-SBY Runtime Configuration
 
-Recorded on 2026-06-17 from the current adapter code, `config/assertllm2_sby.yaml`,
+Recorded on 2026-06-17 from the current adapter code, `AssertLLM2/configs/assertllm2_sby.yaml`,
 and `vendor/llm_client.py`.
 
 ## Python Runtime
@@ -14,7 +14,7 @@ and `vendor/llm_client.py`.
 ## Assertion Generation
 
 - Provider: Anthropic Messages API through `vendor/llm_client.py`
-- Adapter transport: `assertllm2_sby/generator.py::_anthropic_transport`
+- Adapter transport: `AssertLLM2/assertllm2_sby/generator.py::_anthropic_transport`
 - Default model ID: `claude-sonnet-4-6`
 - Model override env var: `ASSERTLLM2_SBY_LLM_MODEL`
 - Default temperature: `0.0`
@@ -68,8 +68,8 @@ The API-key value, prefix, length, and hash are not recorded.
 
 ## Prompt Template
 
-- System prompt location: `assertllm2_sby/generator.py::SPEC_ONLY_SYSTEM_PROMPT`
-- User prompt builder: `assertllm2_sby/generator.py::_build_user_prompt`
+- System prompt location: `AssertLLM2/assertllm2_sby/generator.py::SPEC_ONLY_SYSTEM_PROMPT`
+- User prompt builder: `AssertLLM2/assertllm2_sby/generator.py::_build_user_prompt`
 - Prompt mode currently supported: `bug-prevention`
 - Default spec source: `spec_md`
 - Prompt input isolation: only copied specification files listed in the isolated
@@ -100,7 +100,7 @@ fails closed before any network request.
 
 ## Formal Runtime
 
-- Formal backend status in `config/assertllm2_sby.yaml`: `implemented: true`
+- Formal backend status in `AssertLLM2/configs/assertllm2_sby.yaml`: `implemented: true`
 - Formal judge: Yosys, SymbiYosys, `yosys-smtbmc`, and Z3
 - Default engine: `smtbmc`
 - Default solver: `z3`

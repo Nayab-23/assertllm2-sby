@@ -3,7 +3,7 @@
 This stage uses the read-only official checkout at `third_party/AssertLLM2` and
 keeps adapter code outside that checkout.
 
-Default adapter config lives at `config/assertllm2_sby.yaml`. It intentionally
+Default adapter config lives at `AssertLLM2/configs/assertllm2_sby.yaml`. It intentionally
 contains no secrets.
 
 ## Python Environment

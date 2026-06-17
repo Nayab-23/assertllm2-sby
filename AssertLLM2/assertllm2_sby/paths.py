@@ -4,8 +4,8 @@ from pathlib import Path
 
 from .models import ValidationError
 
-# assertllm2-sby/ (package distribution root)
-PACKAGE_ROOT = Path(__file__).resolve().parent.parent
+# assertllm2-sby/ (repository root)
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 
 
 def resolve_assertllm2_checkout() -> Path:
@@ -37,7 +37,7 @@ def resolve_assertllm2_checkout() -> Path:
 
 
 def config_path() -> Path:
-    return PACKAGE_ROOT / "config" / "assertllm2_sby.yaml"
+    return PACKAGE_ROOT / "AssertLLM2" / "configs" / "assertllm2_sby.yaml"
 
 
 def results_root() -> Path:
