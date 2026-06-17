@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import builtins
 import sys
 from pathlib import Path
 
@@ -13,6 +14,7 @@ if str(ROOT) not in sys.path:
 from assertllm2_sby.assertion_parser import cleanup_assertion_file, collect_assertion_blocks, extract_assertions, syntax_correctness
 from assertllm2_sby import paths as package_paths
 from assertllm2_sby.cli import main as cli_main
+from assertllm2_sby.cli import load_repo_dotenv
 from assertllm2_sby.dataset import discover_designs, get_design
 from assertllm2_sby.generator import generate_assertions
 from assertllm2_sby.isolation import create_isolated_workspace, validate_workspace_isolation
@@ -109,6 +111,18 @@ def test_dataset_discovery_and_ordering(tmp_path: Path):
     assert d.identity["dataset_identity_sha256"]
 
 
+def test_real_assertllm2_checkout_discovers_83_designs_when_initialized():
+    checkout = ROOT / "third_party" / "AssertLLM2"
+    configs = (
+        checkout / "configs" / "assertllm2_design_configs.json",
+        checkout / "AssertLLM2" / "configs" / "assertllm2_design_configs.json",
+    )
+    if not any(path.is_file() for path in configs):
+        pytest.skip("AssertLLM2 submodule checkout is not initialized")
+    designs = discover_designs(checkout)
+    assert len(designs) == 83
+
+
 def test_stable_design_key_lookup(tmp_path: Path):
     root = make_checkout(tmp_path)
     assert get_design("assertllm2/cat/tiny", root).key == "assertllm2/cat/tiny"
@@ -146,6 +160,23 @@ def test_checkout_resolver_accepts_nested_assertllm2_layout(tmp_path: Path, monk
     monkeypatch.setattr(package_paths, "PACKAGE_ROOT", repo)
 
     assert package_paths.resolve_assertllm2_checkout() == (repo / "third_party" / "AssertLLM2").resolve()
+
+
+def test_dotenv_loader_falls_back_when_python_dotenv_missing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    env_path = tmp_path / ".env"
+    env_path.write_text("ASSERTLLM2_SBY_TEST_FALLBACK=value\n", encoding="utf-8")
+    monkeypatch.setattr("assertllm2_sby.cli.dotenv_path", lambda: env_path)
+    monkeypatch.delenv("ASSERTLLM2_SBY_TEST_FALLBACK", raising=False)
+    original_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "dotenv":
+            raise ModuleNotFoundError("No module named 'dotenv'")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+    load_repo_dotenv()
+    assert __import__("os").environ["ASSERTLLM2_SBY_TEST_FALLBACK"] == "value"
 
 
 def test_path_containment_rejects_escape(tmp_path: Path):

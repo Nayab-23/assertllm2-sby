@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 from assertllm2_sby.cli import main as cli_main
-from assertllm2_sby.contract_adapter import generate_contract_assertions
+from assertllm2_sby.contract_adapter import contract_request, generate_contract_assertions
 from assertllm2_sby.models import DesignRecord, GenerationMode
 
 
@@ -119,6 +119,37 @@ def test_contract_inference_adapter_outputs_assertions_and_metadata(tmp_path: Pa
     visibility = json.loads((tmp_path / "out" / "source_visibility_manifest.json").read_text())
     assert visibility["rtl_visible_to_generator"] is True
     assert any(row["role"] == "rtl" for row in visibility["visible_files"])
+
+
+def test_bug_hunting_request_exposes_buggy_rtl_not_clean_rtl(tmp_path: Path):
+    design = make_design(tmp_path)
+    buggy = design.design_dir / "buggy_artifacts" / "merged_buggy_rtl"
+    buggy.mkdir(parents=True)
+    buggy_rtl = buggy / "tiny.v"
+    buggy_rtl.write_text(
+        "module tiny #(parameter WIDTH = 8)(input clk, input req, output ack);\n"
+        "  assign ack = ~req;\n"
+        "endmodule\n",
+        encoding="utf-8",
+    )
+
+    request = contract_request(design, GenerationMode.BUG_HUNTING)
+    result = generate_contract_assertions(
+        design,
+        mode=GenerationMode.BUG_HUNTING,
+        output_dir=tmp_path / "bug_hunting",
+        config={"python_entrypoint": write_fake_adapter(tmp_path)},
+    )
+    visibility = json.loads((tmp_path / "bug_hunting" / "source_visibility_manifest.json").read_text())
+
+    assert result.succeeded
+    assert request["clean_rtl_visible_to_generator"] is False
+    assert request["rtl_files"] == [str(buggy_rtl)]
+    assert request["buggy_rtl_files"] == [str(buggy_rtl)]
+    assert visibility["clean_rtl_visible_to_generator"] is False
+    assert visibility["buggy_rtl_visible_to_generator"] is True
+    assert not any(row["role"] == "rtl" for row in visibility["visible_files"])
+    assert [row["path"] for row in visibility["visible_buggy_rtl_files"]] == [str(buggy_rtl.resolve())]
 
 
 def test_cli_generate_contract_inference(tmp_path: Path, capsys):

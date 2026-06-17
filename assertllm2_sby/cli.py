@@ -14,6 +14,7 @@ from .models import GenerationMode, SpecSource, ValidationError
 from .real_design import run_design
 from .paths import dotenv_path, results_root, runs_root
 from .self_test import run_formal_self_test
+from .suite_runner import SuiteConfig, run_suite
 
 GENERATION_METHODS = ("llm-spec", "contract-inference")
 MODE_CHOICES = [mode.value for mode in GenerationMode]
@@ -25,8 +26,17 @@ def load_repo_dotenv() -> None:
         return
     try:
         from dotenv import load_dotenv
-    except Exception as exc:  # pragma: no cover - environment setup issue
-        raise ValidationError("python-dotenv is required to load repository .env") from exc
+    except Exception:
+        for raw in env_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip("\"'")
+            if key and key not in os.environ:
+                os.environ[key] = value
+        return
     load_dotenv(env_path, override=False)
 
 
@@ -207,6 +217,39 @@ def cmd_run_design(args: argparse.Namespace) -> int:
     return 0 if result["summary"]["generation"]["succeeded"] else 2
 
 
+def cmd_run_suite(args: argparse.Namespace) -> int:
+    config = SuiteConfig(
+        mode=GenerationMode(args.mode),
+        method=args.method,
+        max_mutants=args.max_mutants,
+        jobs=args.jobs,
+        limit=args.limit,
+        design_keys=tuple(args.design or ()),
+        suite_id=args.suite_id,
+        resume=args.resume,
+        contract_config={
+            "python_entrypoint": args.contract_python_entrypoint,
+            "executable": args.contract_executable,
+            "tool_root": args.contract_tool_root,
+        },
+    )
+    payload = run_suite(
+        output_root=args.output_root or (results_root() / "suites"),
+        config=config,
+        checkout=args.checkout,
+    )
+    _print_json({
+        "suite_id": payload["suite_id"],
+        "suite_dir": payload["suite_dir"],
+        "selected_count": payload["selected_count"],
+        "completed_count": payload["completed_count"],
+        "error_count": payload["error_count"],
+        "skipped_resume_count": payload["skipped_resume_count"],
+        "official_jaspergold_result": False,
+    })
+    return 0 if payload["error_count"] == 0 else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="AssertLLM2-SBY adapter")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -245,6 +288,22 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--contract-executable", default=None)
     p.add_argument("--contract-tool-root", default=None)
     p.set_defaults(func=cmd_run_design)
+
+    p = sub.add_parser("run-suite")
+    _checkout_arg(p)
+    p.add_argument("--method", choices=GENERATION_METHODS, default="llm-spec")
+    p.add_argument("--mode", choices=MODE_CHOICES, required=True)
+    p.add_argument("--design", action="append", default=[])
+    p.add_argument("--limit", type=int, default=None)
+    p.add_argument("--jobs", type=int, default=1)
+    p.add_argument("--output-root", type=Path, default=None)
+    p.add_argument("--suite-id", default=None)
+    p.add_argument("--resume", type=Path, default=None)
+    p.add_argument("--max-mutants", type=int, default=1)
+    p.add_argument("--contract-python-entrypoint", default=None)
+    p.add_argument("--contract-executable", default=None)
+    p.add_argument("--contract-tool-root", default=None)
+    p.set_defaults(func=cmd_run_suite)
 
     for name, func in (("prepare-input", cmd_prepare_input), ("generate", cmd_generate)):
         p = sub.add_parser(name)

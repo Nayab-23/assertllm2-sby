@@ -12,6 +12,7 @@ from typing import Any
 from .assertion_parser import cleanup_assertion_file, extract_assertions
 from .manifest import redacted_mapping, sha256_file, utc_now_iso, write_json
 from .models import AssertionCandidate, GenerationBlocked, GenerationMode, GenerationResult, DesignRecord, ValidationError
+from .mutation_runner import buggy_rtl_files, load_mutation_cache
 from .runtime_config import load_adapter_config
 
 
@@ -25,6 +26,9 @@ def _relpath(path: Path, root: Path) -> str:
 def contract_request(design: DesignRecord, mode: GenerationMode) -> dict[str, Any]:
     if mode not in {GenerationMode.RTL_CONTRACT, GenerationMode.BUG_HUNTING, GenerationMode.JUDGE_ONLY}:
         raise ValidationError(f"contract inference requires an RTL-visible mode, got: {mode.value}")
+    buggy_files = buggy_rtl_files(design) if mode == GenerationMode.BUG_HUNTING else ()
+    mutation_cache = load_mutation_cache(design) if mode == GenerationMode.BUG_HUNTING else None
+    visible_rtl = buggy_files if mode == GenerationMode.BUG_HUNTING and buggy_files else design.rtl_files
     return {
         "schema_version": "1.0",
         "adapter": "AssertLLM2-SBY",
@@ -32,7 +36,7 @@ def contract_request(design: DesignRecord, mode: GenerationMode) -> dict[str, An
         "category": design.category,
         "design_name": design.design_name,
         "top_module": design.top_module,
-        "rtl_files": [str(p) for p in design.rtl_files],
+        "rtl_files": [str(p) for p in visible_rtl],
         "include_dirs": [str(p) for p in design.include_dirs],
         "defines": list(design.defines),
         "parameters": design.parameters,
@@ -40,11 +44,15 @@ def contract_request(design: DesignRecord, mode: GenerationMode) -> dict[str, An
         "reset": design.reset,
         "blackbox_modules": list(design.blackbox_modules),
         "mode": mode.value,
+        "buggy_rtl_files": [str(path) for path in buggy_files],
+        "clean_rtl_visible_to_generator": mode != GenerationMode.BUG_HUNTING,
+        "merged_buggy_rtl_dirs": [str(path) for path in mutation_cache.merged_bug_hunting_dirs] if mutation_cache else [],
     }
 
 
 def source_visibility_manifest(design: DesignRecord, mode: GenerationMode) -> dict[str, Any]:
-    files = [design.spec_md, *design.raw_specs, *design.rtl_files]
+    clean_rtl_visible = mode != GenerationMode.BUG_HUNTING
+    files = [design.spec_md, *design.raw_specs, *(design.rtl_files if clean_rtl_visible else ())]
     rows = []
     for path in files:
         if not path.is_file():
@@ -62,6 +70,17 @@ def source_visibility_manifest(design: DesignRecord, mode: GenerationMode) -> di
             "sha256": sha256_file(path),
             "size": path.stat().st_size,
         })
+    if mode == GenerationMode.BUG_HUNTING:
+        for path in buggy_rtl_files(design):
+            if not path.is_file():
+                continue
+            rows.append({
+                "path": str(path.resolve()),
+                "relpath": _relpath(path, design.design_dir),
+                "role": "buggy_rtl",
+                "sha256": sha256_file(path),
+                "size": path.stat().st_size,
+            })
     return {
         "schema_version": "1.0",
         "adapter": "AssertLLM2-SBY",
@@ -69,7 +88,11 @@ def source_visibility_manifest(design: DesignRecord, mode: GenerationMode) -> di
         "design_key": design.key,
         "mode": mode.value,
         "rtl_visible_to_generator": mode in {GenerationMode.RTL_CONTRACT, GenerationMode.BUG_HUNTING},
+        "clean_rtl_visible_to_generator": clean_rtl_visible,
         "buggy_rtl_visible_to_generator": mode == GenerationMode.BUG_HUNTING,
+        "visible_buggy_rtl_files": [
+            row for row in rows if row["role"] == "buggy_rtl"
+        ],
         "visible_files": rows,
         "official_jaspergold_result": False,
     }

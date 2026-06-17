@@ -12,12 +12,23 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .assertion_lowering import classify_and_lower_assertion
+from .compat import write_compatibility_artifacts
 from .contract_adapter import generate_contract_assertions
 from .formal_types import FormalConfig, FormalResult, FormalStatus, FormalTask, LoweredAssertion, SourcePlan
 from .generator import generate_assertions, load_generation_result_from_artifacts
 from .isolation import create_isolated_workspace, validate_workspace_isolation
 from .manifest import read_json, repo_state, sha256_file, write_json
 from .models import AssertionCandidate, DesignRecord, GenerationMode, GenerationResult, SpecSource, ValidationError
+from .mutation_runner import (
+    buggy_rtl_files,
+    bug_hunting_metrics,
+    load_mutation_cache,
+    merged_buggy_source_plan,
+    mutation_counts,
+    mutation_metrics,
+    mutation_results_payload,
+    mutant_source_plan as build_mutant_source_plan,
+)
 from .runtime_config import generator_defaults
 from .sby_backend import run_sby_task
 from .harness_builder import yosys_script_lines
@@ -478,18 +489,33 @@ def run_design(
         if row["lowered"]["supported"] and row["lowered"]["kind"] == "assert"
         and row["golden_outcome"] in {"GOLDEN_PROVEN", "GOLDEN_BOUNDED_CLEAN"}
     ]
-    mutants = mutation_dirs(design)
+    mutation_cache = load_mutation_cache(design)
+    write_json(outdir / "formal" / "mutation_cache.json", mutation_cache.to_json())
+    mutants = list(mutation_cache.mutants)
     selected_mutants = mutants if max_mutants is None else mutants[:max(0, max_mutants)]
     if not selected_mutants:
         mutant_rows.append({"mutant_id": None, "status": "NOT_RUN", "reason": "no cached mutants"})
     elif not eligible:
         for selected_mutant in selected_mutants:
-            mutant_rows.append({"mutant_id": selected_mutant.name, "status": "NOT_RUN", "reason": "no golden-accepted assertions"})
+            mutant_rows.append({
+                "mutant_id": selected_mutant.mutant_id,
+                "status": "NOT_RUN",
+                "reason": "no golden-accepted assertions",
+                "mutant": selected_mutant.to_json(),
+            })
     else:
         for selected_mutant in selected_mutants:
             try:
-                m_plan = mutant_source_plan(golden_plan, selected_mutant)
-                write_json(outdir / "formal" / "mutants" / selected_mutant.name / "source_plan.json", m_plan.to_json())
+                if not selected_mutant.scoreable:
+                    mutant_rows.append({
+                        "mutant_id": selected_mutant.mutant_id,
+                        "status": "NON_SCOREABLE",
+                        "reason": selected_mutant.non_scoreable_reason,
+                        "mutant": selected_mutant.to_json(),
+                    })
+                    continue
+                m_plan = build_mutant_source_plan(golden_plan, design, selected_mutant)
+                write_json(outdir / "formal" / "mutants" / selected_mutant.mutant_id / "source_plan.json", m_plan.to_json())
                 killed = None
                 attempts: list[dict[str, Any]] = []
                 final_status = "SURVIVED"
@@ -510,12 +536,12 @@ def run_design(
                         equivalence_assumptions=tuple(lowered_payload.get("equivalence_assumptions") or ()),
                     )
                     task = FormalTask(
-                        task_id=f"mutant_{selected_mutant.name}_{row['assertion_id']}",
+                        task_id=f"mutant_{selected_mutant.mutant_id}_{row['assertion_id']}",
                         mode="bmc",
                         depth=config.bmc_depth,
                         source_plan=m_plan,
                         assertions=(lowered,),
-                        workdir=(outdir / "formal" / "mutants" / selected_mutant.name / row["assertion_id"]).resolve(),
+                        workdir=(outdir / "formal" / "mutants" / selected_mutant.mutant_id / row["assertion_id"]).resolve(),
                     )
                     if clock and config.prefer_bind:
                         result = run_sby_task(task, config=config, clock=clock)
@@ -558,26 +584,197 @@ def run_design(
                 if killed is None and non_survivor_status is not None:
                     final_status = non_survivor_status
                     final_result = non_survivor_result
+                final_result_json = final_result.to_json() if final_result else None
                 mutant_rows.append({
-                    "mutant_id": selected_mutant.name,
+                    "mutant_id": selected_mutant.mutant_id,
                     "assertion_id": final_responsible,
                     "status": final_status,
-                    "result": final_result.to_json() if final_result else None,
+                    "result": final_result_json,
                     "responsible_assertion": final_responsible,
+                    "killed_by": final_responsible,
+                    "trace_files": final_result_json.get("trace_files", []) if final_result_json else [],
+                    "mutant": selected_mutant.to_json(),
                     "assertion_results": attempts,
                 })
             except Exception as exc:  # noqa: BLE001 - preserve exact infrastructure issue
-                mutant_rows.append({"mutant_id": selected_mutant.name, "status": "ELABORATION_ERROR", "reason": str(exc)})
-                failures.append(f"mutant evaluation failed for {selected_mutant.name}: {exc}")
+                mutant_rows.append({
+                    "mutant_id": selected_mutant.mutant_id,
+                    "status": "ELABORATION_ERROR",
+                    "reason": str(exc),
+                    "mutant": selected_mutant.to_json(),
+                })
+                failures.append(f"mutant evaluation failed for {selected_mutant.mutant_id}: {exc}")
 
     raw_count = 0 if not gen.assertions_path or not gen.assertions_path.exists() else int(bool(gen.assertions_path.read_text(encoding="utf-8").strip()))
     supported_count = sum(1 for row in assertion_rows if row["lowered"]["supported"])
     unsupported_count = len(assertion_rows) - supported_count
     golden_counts = _golden_counts(assertion_rows)
-    mutant_counts = {key: 0 for key in ["STRICT_KILLED", "BOUNDED_ONLY_KILLED", "SURVIVED", "TIMEOUT", "UNKNOWN", "ELABORATION_ERROR", "INFRASTRUCTURE_ERROR", "UNSUPPORTED", "NOT_RUN"]}
-    for row in mutant_rows:
-        mutant_counts[row["status"]] = mutant_counts.get(row["status"], 0) + 1
-    completed = bool(gen.succeeded and parse_elab["passed"] and assertion_rows and mutant_rows and mutant_rows[0]["status"] != "NOT_RUN")
+    mutant_counts = mutation_counts(mutant_rows)
+    mutation_results = mutation_results_payload(
+        design_key=design.key,
+        mutation_cache=mutation_cache,
+        mutant_rows=mutant_rows,
+        eligible_assertions=eligible,
+    )
+    metrics = mutation_metrics(
+        design_key=design.key,
+        mutation_cache=mutation_cache,
+        mutant_rows=mutant_rows,
+        eligible_assertions=eligible,
+    )
+    bug_hunting_rows: list[dict[str, Any]] = []
+    bug_hunting_metrics_payload: dict[str, Any] | None = None
+    if mode == GenerationMode.BUG_HUNTING:
+        stages.append("bug_hunting_merged_buggy_evaluation")
+        if not eligible:
+            for merged_dir in mutation_cache.merged_bug_hunting_dirs:
+                bug_hunting_rows.append({
+                    "target_id": merged_dir.name,
+                    "target_path": str(merged_dir),
+                    "status": "NOT_RUN",
+                    "reason": "no golden-accepted assertions",
+                })
+        elif not mutation_cache.merged_bug_hunting_dirs:
+            bug_hunting_rows.append({
+                "target_id": None,
+                "target_path": None,
+                "status": "NOT_RUN",
+                "reason": "no merged buggy RTL target",
+            })
+        else:
+            for merged_dir in mutation_cache.merged_bug_hunting_dirs:
+                try:
+                    buggy_plan = merged_buggy_source_plan(golden_plan, design, merged_dir)
+                    write_json(outdir / "formal" / "bug_hunting" / merged_dir.name / "source_plan.json", buggy_plan.to_json())
+                    attempts: list[dict[str, Any]] = []
+                    final_status = "SURVIVED"
+                    final_result: FormalResult | None = None
+                    final_responsible: str | None = None
+                    non_survivor_status: str | None = None
+                    non_survivor_result: FormalResult | None = None
+                    for row in eligible:
+                        lowered_payload = row["lowered"]
+                        lowered = LoweredAssertion(
+                            assertion_id=lowered_payload["assertion_id"],
+                            kind=lowered_payload["kind"],
+                            original_text=lowered_payload["original_text"],
+                            lowered_text=lowered_payload["lowered_text"],
+                            supported=lowered_payload["supported"],
+                            reasons=tuple(lowered_payload["reasons"]),
+                            transformation_rule=lowered_payload.get("transformation_rule"),
+                            equivalence_assumptions=tuple(lowered_payload.get("equivalence_assumptions") or ()),
+                        )
+                        task = FormalTask(
+                            task_id=f"bug_hunting_{merged_dir.name}_{row['assertion_id']}",
+                            mode="bmc",
+                            depth=config.bmc_depth,
+                            source_plan=buggy_plan,
+                            assertions=(lowered,),
+                            workdir=(outdir / "formal" / "bug_hunting" / merged_dir.name / row["assertion_id"]).resolve(),
+                        )
+                        if clock and config.prefer_bind:
+                            result = run_sby_task(task, config=config, clock=clock)
+                            if result.status == FormalStatus.ELABORATION_ERROR and (
+                                result.details.get("artifact_generation_error") or result.details.get("bind_checker_removed")
+                            ):
+                                wrapper_task = FormalTask(
+                                    task_id=f"{task.task_id}_wrapper",
+                                    mode=task.mode,
+                                    depth=task.depth,
+                                    source_plan=task.source_plan,
+                                    assertions=task.assertions,
+                                    workdir=(task.workdir / "wrapper_fallback").resolve(),
+                                )
+                                result = run_sby_task(
+                                    wrapper_task,
+                                    config=config,
+                                    harness_body=build_property_harness(buggy_plan, lowered, clock),
+                                    prefer_bind=False,
+                                )
+                                result.details["bind_fallback_from"] = str(task.workdir)
+                        else:
+                            result = run_sby_task(
+                                task,
+                                config=config,
+                                harness_body=build_property_harness(buggy_plan, lowered, clock),
+                            )
+                        status = _mutant_status(row["golden_outcome"], result)
+                        attempts.append({
+                            "assertion_id": row["assertion_id"],
+                            "status": status,
+                            "result": result.to_json(),
+                        })
+                        final_result = result
+                        if status in {"STRICT_KILLED", "BOUNDED_ONLY_KILLED"}:
+                            final_status = status
+                            final_responsible = row["assertion_id"]
+                            break
+                        if status != "SURVIVED" and non_survivor_status is None:
+                            non_survivor_status = status
+                            non_survivor_result = result
+                    if final_responsible is None and non_survivor_status is not None:
+                        final_status = non_survivor_status
+                        final_result = non_survivor_result
+                    final_result_json = final_result.to_json() if final_result else None
+                    bug_hunting_rows.append({
+                        "target_id": merged_dir.name,
+                        "target_path": str(merged_dir),
+                        "assertion_id": final_responsible,
+                        "status": final_status,
+                        "result": final_result_json,
+                        "responsible_assertion": final_responsible,
+                        "detected_by": final_responsible,
+                        "trace_files": final_result_json.get("trace_files", []) if final_result_json else [],
+                        "assertion_results": attempts,
+                    })
+                except Exception as exc:  # noqa: BLE001 - preserve buggy target issue
+                    bug_hunting_rows.append({
+                        "target_id": merged_dir.name,
+                        "target_path": str(merged_dir),
+                        "status": "ELABORATION_ERROR",
+                        "reason": str(exc),
+                    })
+        bug_hunting_metrics_payload = bug_hunting_metrics(
+            design_key=design.key,
+            clean_rows=assertion_rows,
+            merged_buggy_rows=bug_hunting_rows,
+            mutant_metrics=metrics,
+            visible_buggy_rtl_files=[str(path) for path in buggy_rtl_files(design)],
+        )
+        write_json(outdir / "bug_hunting_metrics.json", bug_hunting_metrics_payload)
+        metrics["bug_hunting"] = {
+            "metrics_path": str(outdir / "bug_hunting_metrics.json"),
+            "clean_design_cex_ratio": bug_hunting_metrics_payload["clean_design"]["clean_design_cex_ratio"],
+            "detection_rate": bug_hunting_metrics_payload["merged_buggy_targets"]["detection_rate"],
+            "miss_rate": bug_hunting_metrics_payload["merged_buggy_targets"]["miss_rate"],
+            "error_rate": bug_hunting_metrics_payload["merged_buggy_targets"]["error_rate"],
+        }
+    write_json(outdir / "mutation_results.json", mutation_results)
+    write_json(outdir / "metrics.json", metrics)
+    write_json(outdir / "scorecard.json", {
+        "schema_version": "1.0",
+        "adapter": "AssertLLM2-SBY",
+        "design_key": design.key,
+        "official_jaspergold_result": False,
+        "baseline_eval": str(outdir / "baseline_eval.json"),
+        "mutation_results": str(outdir / "mutation_results.json"),
+        "metrics": str(outdir / "metrics.json"),
+        "strict_mutation_score": metrics["strict_mutation_score"],
+        "bounded_inclusive_mutation_score": metrics["bounded_inclusive_mutation_score"],
+        "counts": metrics["counts"],
+    })
+    mutation_evaluated = bool(mutant_rows and any(row["status"] not in {"NOT_RUN", "NON_SCOREABLE"} for row in mutant_rows))
+    bug_hunting_evaluated = bool(
+        mode == GenerationMode.BUG_HUNTING
+        and bug_hunting_rows
+        and any(row["status"] not in {"NOT_RUN", "NON_SCOREABLE"} for row in bug_hunting_rows)
+    )
+    completed = bool(
+        gen.succeeded
+        and parse_elab["passed"]
+        and assertion_rows
+        and (mutation_evaluated or bug_hunting_evaluated)
+    )
     if not completed:
         failures.append("design did not complete end to end")
 
@@ -618,8 +815,32 @@ def run_design(
         "golden_outcomes": golden_counts,
         "mutants": mutant_rows,
         "mutant_outcomes": mutant_counts,
+        "bug_hunting": {
+            "enabled": mode == GenerationMode.BUG_HUNTING,
+            "metrics_path": str(outdir / "bug_hunting_metrics.json") if bug_hunting_metrics_payload else None,
+            "merged_buggy_results": bug_hunting_rows,
+        },
         "failures": failures,
     }
+    stages.append("jasper_compatible_baseline_artifacts")
+    baseline_eval = write_compatibility_artifacts(
+        outdir,
+        design_key=design.key,
+        top_module=design.top_module,
+        generation={
+            "syntax_cleanup": gen.metadata.get("syntax_cleanup") or {},
+        },
+        assertion_rows=assertion_rows,
+        config=config.to_json(),
+        source_assertions_path=gen.assertions_path,
+        source_meta_path=Path(str(gen.metadata["assertions_meta_path"]))
+        if gen.metadata.get("assertions_meta_path")
+        else None,
+        source_plan=golden_plan,
+    )
+    summary["baseline_eval_path"] = str(outdir / "baseline_eval.json")
+    summary["design_fpv_report_path"] = str(outdir / "report" / "design.fpv.rpt")
+    summary["scoreable_assertions"] = baseline_eval["scoreable_assertions"]
     write_json(outdir / "summary.json", summary)
     write_json(outdir / "manifest.json", {
         "adapter": "AssertLLM2-SBY",
