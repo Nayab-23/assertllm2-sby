@@ -114,6 +114,31 @@ python -m assertllm2_sby run-design \
   --contract-python-entrypoint your_module:your_function
 ```
 
+Polaris Sable can be used as the contract-inference backend through the
+first-class adapter entrypoint:
+
+```bash
+python -m assertllm2_sby run-suite \
+  --method contract-inference \
+  --mode rtl-contract \
+  --contract-python-entrypoint assertllm2_sby.sable_adapter:infer
+```
+
+The adapter imports an installed Polaris Sable engine and passes the full
+AssertLLM2-SBY contract request through to it, including RTL files, top module,
+include directories, defines, parameters, clocks, reset, mode, specs, and
+working directory metadata. If your Sable installation exposes a non-standard
+Python callable, set:
+
+```bash
+export ASSERTLLM2_SBY_SABLE_ENTRYPOINT=polaris_sable.integration.assertllm2:infer
+```
+
+The callable should return generated assertions as strings or dictionaries with
+an `sva`, `text`, `assertion`, or `property` field. The adapter writes
+`sable_request.json`, `sable_result.json`, `sable_assertions.json`, and
+`sable_stats.json` into the generation output directory.
+
 ### Suite runs
 
 ```bash
@@ -141,6 +166,10 @@ Use `--resume <suite_dir>` to continue a prior suite directory.
 - `ASSERTLLM2_SBY_CONTRACT_PYTHON_ENTRYPOINT`
 - `ASSERTLLM2_SBY_CONTRACT_EXECUTABLE`
 - `ASSERTLLM2_SBY_CONTRACT_TOOL_ROOT`
+- `ASSERTLLM2_SBY_SABLE_ENTRYPOINT` overrides the Polaris Sable engine callable
+  used by `assertllm2_sby.sable_adapter:infer`
+- `POLARIS_SABLE_ENTRYPOINT` is also accepted as a Sable engine callable
+  override
 
 Repository-root `.env` files are loaded with `override=False`, so they can
 provide defaults without overwriting already-exported environment variables.
