@@ -132,22 +132,22 @@ def main() -> int:
             "PASS" if len(designs) == 83 else "FAIL",
             f"{len(designs)} designs",
         )
-            old = os.environ.get("ASSERTLLM2_SBY_ENABLE_CLOUD_LLM")
-            try:
-                gate_results = {}
-                for value in (None, "", "0", "1"):
-                    if value is None:
-                        os.environ.pop("ASSERTLLM2_SBY_ENABLE_CLOUD_LLM", None)
-                        label = "missing"
-                    else:
-                        os.environ["ASSERTLLM2_SBY_ENABLE_CLOUD_LLM"] = value
-                        label = value or "empty"
-                    gate_results[label] = env_flag("ASSERTLLM2_SBY_ENABLE_CLOUD_LLM")
-            finally:
-                if old is None:
+        old = os.environ.get("ASSERTLLM2_SBY_ENABLE_CLOUD_LLM")
+        try:
+            gate_results = {}
+            for value in (None, "", "0", "1"):
+                if value is None:
                     os.environ.pop("ASSERTLLM2_SBY_ENABLE_CLOUD_LLM", None)
+                    label = "missing"
                 else:
-                    os.environ["ASSERTLLM2_SBY_ENABLE_CLOUD_LLM"] = old
+                    os.environ["ASSERTLLM2_SBY_ENABLE_CLOUD_LLM"] = value
+                    label = value or "empty"
+                gate_results[label] = env_flag("ASSERTLLM2_SBY_ENABLE_CLOUD_LLM")
+        finally:
+            if old is None:
+                os.environ.pop("ASSERTLLM2_SBY_ENABLE_CLOUD_LLM", None)
+            else:
+                os.environ["ASSERTLLM2_SBY_ENABLE_CLOUD_LLM"] = old
         expected_gate = {
             "missing": False,
             "empty": False,
