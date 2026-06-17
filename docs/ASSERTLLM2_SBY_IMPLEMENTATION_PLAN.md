@@ -2,7 +2,7 @@
 
 ## Objective
 
-Build **AssertLLM2-SBY**, an open-source adaptation of the AssertLLM2 evaluation that uses Polaris/Sable for assertion generation and Yosys/SymbiYosys/Z3 for formal judging. Results must be reported as backend-specific AssertLLM2-SBY results, never as official AssertLLM2 JasperGold scores.
+Build **AssertLLM2-SBY**, an open-source adaptation of the AssertLLM2 evaluation that uses the bundled Anthropic assertion generator and Yosys/SymbiYosys/Z3 for formal judging. Results must be reported as backend-specific AssertLLM2-SBY results, never as official AssertLLM2 JasperGold scores.
 
 ## Non-Goals
 
@@ -16,7 +16,7 @@ Build **AssertLLM2-SBY**, an open-source adaptation of the AssertLLM2 evaluation
 - `assertllm2_sby/`
   - `config_loader.py`: read official AssertLLM2 config JSON and normalize design records.
   - `materialize.py`: copy benchmark inputs into immutable per-run work directories.
-  - `generator.py`: invoke Polaris/Sable assertion generation with the selected prompt context.
+  - `generator.py`: invoke the bundled assertion generation with the selected prompt context.
   - `sby_builder.py`: build harnesses, bind files, `.sby` files, and Yosys scripts.
   - `judge.py`: run SBY or `yosys-smtbmc`, classify statuses, collect logs/traces.
   - `mutants.py`: load cached AssertLLM2 mutation metadata and materialize mutant filelists.
@@ -65,7 +65,7 @@ Exit criteria: materialized design directory is complete, deterministic, and ind
 1. Define bug-prevention prompt mode using only `spec.md` or raw spec input.
 2. Ensure the generator cannot access golden RTL or mutants in bug-prevention mode.
 3. Define bug-hunting prompt mode separately and record exact visible RTL context.
-4. Reuse `polaris-sable/sable/llm_client.py` and `spec_synth.py` where possible.
+4. Reuse the bundled client and spec synthesis code where possible.
 5. Store generated assertions in the run directory with model, temperature, prompt mode, and source hashes.
 
 Exit criteria: one design produces a syntactically inspectable assertion artifact without seeing disallowed inputs.
@@ -120,7 +120,7 @@ Exit criteria: one real design produces a mutation report with honest eligible d
 3. Include:
    - AssertLLM2 commit
    - ASSERTNEURO commit/tree state
-   - Polaris/Sable tree state
+   - repository tree state
    - tool versions
    - solver
    - model and temperature

@@ -192,7 +192,7 @@ def run_formal_self_test(output_root: Path | None = None) -> dict[str, Any]:
     golden_plan, mutant_plan = _write_fixture(outdir)
 
     env_detected = {
-        "cloud_llm_gate_detected": env_flag("SABLE_ENABLE_CLOUD_LLM"),
+        "cloud_llm_gate_detected": env_flag("ASSERTLLM2_SBY_ENABLE_CLOUD_LLM"),
         "anthropic_api_key_detected": bool(os.environ.get("ANTHROPIC_API_KEY")),
         "secret_values_logged": False,
     }

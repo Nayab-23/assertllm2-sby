@@ -29,22 +29,22 @@ not install AssertLLM2-SBY test dependencies into the global Python.
 
 ## Generation Runtime
 
-For a real generation call, the current adapter uses the Polaris/Sable Anthropic
-LLM client settings:
+For a real generation call, the current adapter uses the Anthropic client
+settings exposed by this repository:
 
 ```bash
 source .venv-assertllm2-sby/bin/activate
-export SABLE_ENABLE_CLOUD_LLM=1
+export ASSERTLLM2_SBY_ENABLE_CLOUD_LLM=1
 export ANTHROPIC_API_KEY=...
-export SABLE_LLM_MODEL=claude-sonnet-4-6
-export SABLE_LLM_TEMPERATURE=0.0
-export SABLE_LLM_MAX_TOKENS=4096
+export ASSERTLLM2_SBY_LLM_MODEL=claude-sonnet-4-6
+export ASSERTLLM2_SBY_LLM_TEMPERATURE=0.0
+export ASSERTLLM2_SBY_LLM_MAX_TOKENS=4096
 python -m assertllm2_sby generate \
   --mode bug-prevention \
   --design <assertllm2/design/key>
 ```
 
-To run an experiment with a different Anthropic model, set `SABLE_LLM_MODEL` in
+To run an experiment with a different Anthropic model, set `ASSERTLLM2_SBY_LLM_MODEL` in
 the shell or repository-root `.env` before invoking the CLI. This creates a
 fresh run directory and records the effective non-secret model configuration in
 the run artifacts. Do not change source defaults for a one-off experiment.
@@ -52,11 +52,11 @@ the run artifacts. Do not change source defaults for a one-off experiment.
 If credentials or model access are unavailable, `generate` fails closed and
 writes a blocked generation manifest instead of fabricating assertions.
 
-`SABLE_ENABLE_CLOUD_LLM=1` is the explicit opt-in for Anthropic calls. Missing,
+`ASSERTLLM2_SBY_ENABLE_CLOUD_LLM=1` is the explicit opt-in for Anthropic calls. Missing,
 empty, or `0` values block cloud-model calls. The AssertLLM2-SBY CLI loads the
 repository-root `.env` once with `python-dotenv` and `override=False`;
-`ANTHROPIC_API_KEY` is then read from the process environment by Sable's
-`llm_client`. The adapter must not print API-key values.
+`ANTHROPIC_API_KEY` is then read from the process environment by the bundled
+client. The adapter must not print API-key values.
 
 Anthropic performs assertion generation only. SymbiYosys/Yosys/Z3 perform formal
 evaluation. The current formal backend is enabled after passing the synthetic

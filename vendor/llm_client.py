@@ -1,28 +1,10 @@
 #!/usr/bin/env python3
 """
-Sable — Anthropic LLM client (Task 4 of the Proposer/Verifier stack).
+Anthropic LLM client used by the generation path.
 
-A thin, dependency-light wrapper over the Anthropic Messages API used by the two
-LLM touch points in the proposer stack:
-  - spec_synth.AnthropicSpecLLM  (spec text -> structured SpecFragments)
-  - proposer.AnthropicProposer    (RTL context -> typed hypotheses)
-
-DESIGN CONTRACT (consistent with the rest of the stack):
-  - The LLM is the PROPOSER (intern). Its raw text is NEVER trusted. Every call
-    here returns parsed JSON or nothing; callers reject any output that does not
-    parse to their schema and (for proposer hypotheses) does not pass validate().
-  - Model id is an ENV-OVERRIDABLE CONSTANT (SABLE_LLM_MODEL), defaulting to the
-    current Sonnet alias. One-line override, never hardcoded into call sites, so
-    a model bump is a single env var.
-  - API key is read from the environment (ANTHROPIC_API_KEY). If absent, callers
-    fall back to their deterministic stub and log a warning. This module never
-    hardcodes a key and never raises into the analysis path on a missing key —
-    is_available() lets callers branch cleanly.
-  - Raw HTTP via requests (the SDK is not a dependency here, and the sprint spec
-    names the REST endpoint). max_tokens is capped per the spec.
-
-Uses only stdlib + requests (already a project dep). Does NOT import
-oracle_contracts (keep the hub cycle-free).
+This is a thin, dependency-light wrapper over the Anthropic Messages API.
+It returns parsed JSON or nothing; callers reject any output that does not
+match their schema.
 """
 
 from __future__ import annotations
@@ -40,28 +22,17 @@ except ModuleNotFoundError:  # pragma: no cover - requests is a project dep
     requests = None
 
 
-# Env-overridable model constant. Default = claude-sonnet-4-6 (the current Sonnet
-# tier: best cost/latency for the proposer, confirmed callable on this account via
-# GET /v1/models on 2026-06-16). History: claude-fable-5 was the default 2026-06-09
-# but is restricted on this account; before that the sprint spec's
-# claude-sonnet-4-20250514, deprecated/retiring 2026-06-15.
-# ESCALATION: set SABLE_LLM_MODEL=claude-opus-4-8 to use the current Opus tier for
-# harder spec text — a single env var, no call-site edits.
-LLM_MODEL = os.environ.get("SABLE_LLM_MODEL", "claude-sonnet-4-6")
+LLM_MODEL = os.environ.get("ASSERTLLM2_SBY_LLM_MODEL", "claude-sonnet-4-6")
 
 # Per the sprint spec.
-LLM_MAX_TOKENS = int(os.environ.get("SABLE_LLM_MAX_TOKENS", "1000"))
+LLM_MAX_TOKENS = int(os.environ.get("ASSERTLLM2_SBY_LLM_MAX_TOKENS", "1000"))
 
 # Sampling temperature. Default 0.0 = greedy/deterministic, which is what the
 # fail-closed proposer wants (reproducible candidates). Override per-run with
-# SABLE_LLM_TEMPERATURE. The plan REQUIRES logging model + temperature with every
-# reported number; see _log_call below and get_call_log().
-LLM_TEMPERATURE = float(os.environ.get("SABLE_LLM_TEMPERATURE", "0.0"))
+LLM_TEMPERATURE = float(os.environ.get("ASSERTLLM2_SBY_LLM_TEMPERATURE", "0.0"))
 
-# Optional JSONL audit log of every call's provenance (model + temperature +
-# shapes + outcome). Set SABLE_LLM_LOG to a path to persist; the in-memory log is
-# always available via get_call_log() for run-result provenance blocks.
-_LLM_LOG_PATH = os.environ.get("SABLE_LLM_LOG")
+# Optional JSONL audit log of every call's provenance.
+_LLM_LOG_PATH = os.environ.get("ASSERTLLM2_SBY_LLM_LOG")
 _CALL_LOG: list[dict] = []
 
 
@@ -97,8 +68,7 @@ API_URL = os.environ.get("ANTHROPIC_API_URL", "https://api.anthropic.com/v1/mess
 API_VERSION = "2023-06-01"
 _API_KEY_ENV = "ANTHROPIC_API_KEY"
 
-# Network timeout (seconds) — bounded so a hung call can't stall analysis.
-_TIMEOUT = float(os.environ.get("SABLE_LLM_TIMEOUT", "30"))
+_TIMEOUT = float(os.environ.get("ASSERTLLM2_SBY_LLM_TIMEOUT", "30"))
 
 
 def api_key_present() -> bool:

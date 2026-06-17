@@ -3,7 +3,7 @@
 ## Name And Scope
 
 - The project name is **AssertLLM2-SBY**.
-- Polaris/Sable is the assertion generator for this adaptation.
+- The bundled Anthropic client is the assertion generator for this adaptation.
 - Yosys, SymbiYosys, `yosys-smtbmc`, and an SMT solver are the formal judge for this adaptation.
 - AssertLLM2-SBY results are backend-specific open-source-flow results. They are not official AssertLLM2 JasperGold results and must not be presented as directly comparable to published JasperGold scores.
 
@@ -33,7 +33,7 @@
 ## Provenance And Secrets
 
 - Every run must record the exact AssertLLM2 commit.
-- Every run must record the exact ASSERTNEURO commit, Polaris/Sable commit or tree state, tool versions, solver, model, temperature, prompt mode, design key, and all input file hashes used by the adapter.
+- Every run must record the exact repository commit, tool versions, solver, model, temperature, prompt mode, design key, and all input file hashes used by the adapter.
 - Secrets must never appear in logs, prompts, manifests, generated artifacts, or reports.
 - `.env` must not be printed, parsed into manifests, or copied into run directories.
 

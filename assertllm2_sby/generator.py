@@ -20,7 +20,7 @@ VENDOR_DIR = Path(__file__).resolve().parent.parent / "vendor"
 if VENDOR_DIR.is_dir() and str(VENDOR_DIR) not in sys.path:
     sys.path.insert(0, str(VENDOR_DIR))
 
-SPEC_ONLY_SYSTEM_PROMPT = """You are the Polaris/Sable bounded assertion proposer for AssertLLM2-SBY.
+SPEC_ONLY_SYSTEM_PROMPT = """You are the bounded assertion proposer for AssertLLM2-SBY.
 
 Generate candidate SystemVerilog Assertions from the provided specification only.
 The input is bug-prevention isolated: no RTL, mutants, prior results, or golden
@@ -52,21 +52,21 @@ def _build_user_prompt(workspace: IsolatedWorkspace) -> str:
     )
 
 
-def _sable_anthropic_transport(system_prompt: str, user_prompt: str, config: dict[str, Any]) -> dict[str, Any]:
+def _anthropic_transport(system_prompt: str, user_prompt: str, config: dict[str, Any]) -> dict[str, Any]:
     try:
-        import llm_client as sable_llm  # type: ignore
+        import llm_client as anthropic_client  # type: ignore
     except Exception as exc:  # pragma: no cover - environment-specific
-        raise GenerationBlocked(f"could not import Sable llm_client: {exc}") from exc
+        raise GenerationBlocked(f"could not import the bundled Anthropic client: {exc}") from exc
 
-    if not env_flag("SABLE_ENABLE_CLOUD_LLM"):
-        raise GenerationBlocked("cloud LLM disabled; set SABLE_ENABLE_CLOUD_LLM=1")
+    if not env_flag("ASSERTLLM2_SBY_ENABLE_CLOUD_LLM"):
+        raise GenerationBlocked("cloud LLM disabled; set ASSERTLLM2_SBY_ENABLE_CLOUD_LLM=1")
     if not os.environ.get("ANTHROPIC_API_KEY"):
         raise GenerationBlocked("ANTHROPIC_API_KEY is not set")
-    if getattr(sable_llm, "requests", None) is None:
-        raise GenerationBlocked("Sable llm_client requests dependency is unavailable")
+    if getattr(anthropic_client, "requests", None) is None:
+        raise GenerationBlocked("bundled Anthropic client requests dependency is unavailable")
 
     defaults = generator_defaults()
-    model = str(config.get("model") or defaults["model"] or getattr(sable_llm, "LLM_MODEL", ""))
+    model = str(config.get("model") or defaults["model"] or getattr(anthropic_client, "LLM_MODEL", ""))
     max_tokens = int(config.get("max_tokens") or defaults["max_tokens"])
     temperature_value = config.get("temperature")
     temperature = float(
@@ -81,12 +81,12 @@ def _sable_anthropic_transport(system_prompt: str, user_prompt: str, config: dic
     }
     headers = {
         "x-api-key": os.environ["ANTHROPIC_API_KEY"],
-        "anthropic-version": getattr(sable_llm, "API_VERSION", "2023-06-01"),
+        "anthropic-version": getattr(anthropic_client, "API_VERSION", "2023-06-01"),
         "content-type": "application/json",
     }
     try:
-        response = sable_llm.requests.post(
-            getattr(sable_llm, "API_URL", "https://api.anthropic.com/v1/messages"),
+        response = anthropic_client.requests.post(
+            getattr(anthropic_client, "API_URL", "https://api.anthropic.com/v1/messages"),
             headers=headers,
             json=body,
             timeout=float(config.get("timeout", defaults["timeout"])),
@@ -199,7 +199,7 @@ def generate_assertions(
     stderr = io.StringIO()
     metadata: dict[str, Any] = {
         "started_at": utc_now_iso(),
-        "adapter_generator": "sable_spec_only_llm_client",
+        "adapter_generator": "spec_only_llm_client",
         "generator_config": cfg,
         "workspace_manifest": str(workspace.manifest_path),
         "prompt_files": {
@@ -209,7 +209,7 @@ def generate_assertions(
     }
     try:
         with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
-            response = (transport or _sable_anthropic_transport)(system_prompt, user_prompt, cfg)
+            response = (transport or _anthropic_transport)(system_prompt, user_prompt, cfg)
         raw_path = outdir / "raw_model_response.json"
         write_json(raw_path, redacted_mapping(response))
         stop_reason = response.get("stop_reason")

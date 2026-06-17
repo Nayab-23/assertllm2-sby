@@ -1,7 +1,7 @@
 # AssertLLM2-SBY Runtime Configuration
 
 Recorded on 2026-06-17 from the current adapter code, `config/assertllm2_sby.yaml`,
-and `polaris-sable/sable/llm_client.py`.
+and `vendor/llm_client.py`.
 
 ## Python Runtime
 
@@ -13,26 +13,26 @@ and `polaris-sable/sable/llm_client.py`.
 
 ## Assertion Generation
 
-- Provider: Anthropic Messages API through `polaris-sable/sable/llm_client.py`
-- Adapter transport: `assertllm2_sby/generator.py::_sable_anthropic_transport`
+- Provider: Anthropic Messages API through `vendor/llm_client.py`
+- Adapter transport: `assertllm2_sby/generator.py::_anthropic_transport`
 - Default model ID: `claude-sonnet-4-6`
-- Model override env var: `SABLE_LLM_MODEL`
+- Model override env var: `ASSERTLLM2_SBY_LLM_MODEL`
 - Default temperature: `0.0`
-- Temperature override env var: `SABLE_LLM_TEMPERATURE`
+- Temperature override env var: `ASSERTLLM2_SBY_LLM_TEMPERATURE`
 - Default maximum output tokens: `4096`
-- Max-token override env var: `SABLE_LLM_MAX_TOKENS`
+- Max-token override env var: `ASSERTLLM2_SBY_LLM_MAX_TOKENS`
 - Default API URL: `https://api.anthropic.com/v1/messages`
 - API URL override env var: `ANTHROPIC_API_URL`
 - Anthropic API version header: `2023-06-01`
 - Default request timeout: `30` seconds
-- Timeout override env var: `SABLE_LLM_TIMEOUT`
+- Timeout override env var: `ASSERTLLM2_SBY_LLM_TIMEOUT`
 - Thinking/reasoning configuration: none. The request body contains `model`,
   `max_tokens`, `temperature`, `system`, and `messages`; it does not set a
   thinking or reasoning field.
-- Retry count: `0`. Neither the adapter transport nor Sable `llm_client.py`
+- Retry count: `0`. Neither the adapter transport nor `vendor/llm_client.py`
   implements a retry loop for this path.
 - Generation attempts per design: `1` per adapter `generate` invocation.
-- Optional call provenance log: `SABLE_LLM_LOG`, written by Sable `llm_client.py`
+- Optional call provenance log: `ASSERTLLM2_SBY_LLM_LOG`, written by `vendor/llm_client.py`
   when that module's logging helper is used. The AssertLLM2-SBY adapter writes
   its own generation artifacts under the selected output directory.
 
@@ -44,8 +44,8 @@ in source for an experiment.
 Minimum non-secret override:
 
 ```bash
-SABLE_ENABLE_CLOUD_LLM=1
-SABLE_LLM_MODEL=<anthropic-model-id>
+ASSERTLLM2_SBY_ENABLE_CLOUD_LLM=1
+ASSERTLLM2_SBY_LLM_MODEL=<anthropic-model-id>
 ```
 
 Keep `ANTHROPIC_API_KEY` in `.env` or the process environment only. Never copy
@@ -80,22 +80,22 @@ The API-key value, prefix, length, and hash are not recorded.
 
 The official AssertLLM2 `plain_prompt` templates remain in the upstream checkout
 under `third_party/AssertLLM2/AssertLLM2/assertbench/methods/plain_prompt/`, but
-this adapter does not use them for the current Sable generation path.
+ this adapter does not use them for the current Anthropic generation path.
 
 ## Secret Loading And Cloud Gate
 
-- Cloud opt-in env var: `SABLE_ENABLE_CLOUD_LLM`
+- Cloud opt-in env var: `ASSERTLLM2_SBY_ENABLE_CLOUD_LLM`
 - Blocking values: missing, empty, or `0`
 - Permitting value: `1`
 - API-key env var: `ANTHROPIC_API_KEY`
 - `.env` loading: the AssertLLM2-SBY CLI loads the repository-root `.env` once
-  with `python-dotenv` and `override=False`. `polaris-sable/sable/llm_client.py`
+  with `python-dotenv` and `override=False`. `vendor/llm_client.py`
   still reads the resulting process environment.
 - Secret storage policy: API-key values must not be written to config, manifests,
   prompts, logs, or reports. Adapter config redaction covers keys matching API
   key, token, secret, password, and credential patterns.
 
-With `SABLE_ENABLE_CLOUD_LLM=1` but no `ANTHROPIC_API_KEY`, generation still
+With `ASSERTLLM2_SBY_ENABLE_CLOUD_LLM=1` but no `ANTHROPIC_API_KEY`, generation still
 fails closed before any network request.
 
 ## Formal Runtime

@@ -174,7 +174,7 @@ def cmd_generate(args: argparse.Namespace) -> int:
 
 def cmd_env_status(args: argparse.Namespace) -> int:
     _print_json({
-        "cloud_llm_gate_detected": "yes" if env_flag("SABLE_ENABLE_CLOUD_LLM") else "no",
+        "cloud_llm_gate_detected": "yes" if env_flag("ASSERTLLM2_SBY_ENABLE_CLOUD_LLM") else "no",
         "anthropic_api_key_detected": "yes" if bool(os.environ.get("ANTHROPIC_API_KEY")) else "no",
     })
     return 0

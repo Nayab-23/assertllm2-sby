@@ -48,10 +48,10 @@ def load_adapter_config(path: Path = CONFIG_PATH) -> dict[str, Any]:
 
 def generator_defaults(path: Path = CONFIG_PATH) -> dict[str, Any]:
     generator = load_adapter_config(path).get("generator") or {}
-    max_tokens_env = str(generator.get("max_tokens_env", "SABLE_LLM_MAX_TOKENS"))
-    temperature_env = str(generator.get("temperature_env", "SABLE_LLM_TEMPERATURE"))
-    timeout_env = str(generator.get("timeout_env", "SABLE_LLM_TIMEOUT"))
-    model_env = str(generator.get("model_env", "SABLE_LLM_MODEL"))
+    max_tokens_env = str(generator.get("max_tokens_env", "ASSERTLLM2_SBY_LLM_MAX_TOKENS"))
+    temperature_env = str(generator.get("temperature_env", "ASSERTLLM2_SBY_LLM_TEMPERATURE"))
+    timeout_env = str(generator.get("timeout_env", "ASSERTLLM2_SBY_LLM_TIMEOUT"))
+    model_env = str(generator.get("model_env", "ASSERTLLM2_SBY_LLM_MODEL"))
     return {
         "model": os.environ.get(model_env) or generator.get("model_default", "claude-sonnet-4-6"),
         "temperature": float(os.environ.get(temperature_env) or generator.get("temperature_default", 0.0)),

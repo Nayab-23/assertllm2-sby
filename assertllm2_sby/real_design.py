@@ -306,17 +306,17 @@ def model_configuration(gen: GenerationResult) -> dict[str, Any]:
         }
     return {
         "provider": gen.metadata.get("provider") or "anthropic",
-        "model": gen.metadata.get("model") or os.environ.get("SABLE_LLM_MODEL") or defaults["model"],
+        "model": gen.metadata.get("model") or os.environ.get("ASSERTLLM2_SBY_LLM_MODEL") or defaults["model"],
         "temperature": gen.metadata.get("temperature")
         if gen.metadata.get("temperature") is not None
-        else _float_env("SABLE_LLM_TEMPERATURE", float(defaults["temperature"])),
+        else _float_env("ASSERTLLM2_SBY_LLM_TEMPERATURE", float(defaults["temperature"])),
         "max_tokens": gen.metadata.get("configured_max_output_tokens")
         or gen.metadata.get("max_tokens")
-        or _int_env("SABLE_LLM_MAX_TOKENS", int(defaults["max_tokens"])),
+        or _int_env("ASSERTLLM2_SBY_LLM_MAX_TOKENS", int(defaults["max_tokens"])),
         "configured_max_output_tokens": gen.metadata.get("configured_max_output_tokens")
         or gen.metadata.get("max_tokens")
-        or _int_env("SABLE_LLM_MAX_TOKENS", int(defaults["max_tokens"])),
-        "timeout_seconds": _float_env("SABLE_LLM_TIMEOUT", 30.0),
+        or _int_env("ASSERTLLM2_SBY_LLM_MAX_TOKENS", int(defaults["max_tokens"])),
+        "timeout_seconds": _float_env("ASSERTLLM2_SBY_LLM_TIMEOUT", 30.0),
         "api_url_env": "ANTHROPIC_API_URL",
         "api_version": gen.metadata.get("api_version") or "2023-06-01",
         "prompt_template": gen.metadata.get("prompt_template")
@@ -326,7 +326,7 @@ def model_configuration(gen: GenerationResult) -> dict[str, Any]:
         "attempts_per_design": gen.metadata.get("attempts_per_design") or 1,
         "retry_count": gen.metadata.get("retry_count") or 0,
         "thinking": gen.metadata.get("thinking") or "none",
-        "cloud_gate_env": "SABLE_ENABLE_CLOUD_LLM",
+        "cloud_gate_env": "ASSERTLLM2_SBY_ENABLE_CLOUD_LLM",
         "api_key_env": "ANTHROPIC_API_KEY",
         "api_key_value_logged": False,
     }
@@ -785,7 +785,7 @@ def run_design(
         "z3": tool_line(["z3", "--version"]),
         "assertllm2_sby": repo_state(PACKAGE_ROOT),
         "assertllm2": repo_state(resolve_assertllm2_checkout()),
-        "cloud_llm_gate_detected": bool(os.environ.get("SABLE_ENABLE_CLOUD_LLM")),
+        "cloud_llm_gate_detected": bool(os.environ.get("ASSERTLLM2_SBY_ENABLE_CLOUD_LLM")),
         "anthropic_api_key_detected": bool(os.environ.get("ANTHROPIC_API_KEY")),
         "secret_values_logged": False,
         "model_configuration": model_cfg,

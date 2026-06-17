@@ -307,22 +307,22 @@ def test_secret_redaction():
 @pytest.mark.parametrize("value", [None, "", "0"])
 def test_cloud_llm_gate_blocks_when_not_explicitly_enabled(monkeypatch: pytest.MonkeyPatch, value: str | None):
     if value is None:
-        monkeypatch.delenv("SABLE_ENABLE_CLOUD_LLM", raising=False)
+        monkeypatch.delenv("ASSERTLLM2_SBY_ENABLE_CLOUD_LLM", raising=False)
     else:
-        monkeypatch.setenv("SABLE_ENABLE_CLOUD_LLM", value)
-    assert env_flag("SABLE_ENABLE_CLOUD_LLM") is False
+        monkeypatch.setenv("ASSERTLLM2_SBY_ENABLE_CLOUD_LLM", value)
+    assert env_flag("ASSERTLLM2_SBY_ENABLE_CLOUD_LLM") is False
 
 
 def test_cloud_llm_gate_permits_explicit_opt_in(monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("SABLE_ENABLE_CLOUD_LLM", "1")
-    assert env_flag("SABLE_ENABLE_CLOUD_LLM") is True
+    monkeypatch.setenv("ASSERTLLM2_SBY_ENABLE_CLOUD_LLM", "1")
+    assert env_flag("ASSERTLLM2_SBY_ENABLE_CLOUD_LLM") is True
 
 
 def test_generate_fails_closed_before_api_key_or_network(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     root = make_checkout(tmp_path)
     design = get_design("assertllm2/cat/tiny", root)
     ws = create_isolated_workspace(design, output_root=tmp_path / "runs")
-    monkeypatch.setenv("SABLE_ENABLE_CLOUD_LLM", "1")
+    monkeypatch.setenv("ASSERTLLM2_SBY_ENABLE_CLOUD_LLM", "1")
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
 
     result = generate_assertions(ws, output_dir=tmp_path / "blocked_gen")

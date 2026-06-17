@@ -292,7 +292,7 @@ def test_run_design_no_assertion_output_is_reported(tmp_path: Path):
 
 def test_run_design_failure_propagates_generation_block(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     design = make_design(tmp_path)
-    monkeypatch.delenv("SABLE_ENABLE_CLOUD_LLM", raising=False)
+    monkeypatch.delenv("ASSERTLLM2_SBY_ENABLE_CLOUD_LLM", raising=False)
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     result = run_design(design, output_root=tmp_path / "results")
     assert result["status"] == "PARTIAL"
@@ -303,7 +303,7 @@ def test_run_design_failure_propagates_generation_block(tmp_path: Path, monkeypa
 def test_run_design_artifacts_do_not_leak_secret_values(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     secret = "sk-ant-test-secret-value-should-not-appear"
     monkeypatch.setenv("ANTHROPIC_API_KEY", secret)
-    monkeypatch.setenv("SABLE_ENABLE_CLOUD_LLM", "1")
+    monkeypatch.setenv("ASSERTLLM2_SBY_ENABLE_CLOUD_LLM", "1")
     design = make_design(tmp_path)
 
     result = run_design(design, output_root=tmp_path / "results", transport=fake_transport)

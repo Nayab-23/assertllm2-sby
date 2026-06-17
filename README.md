@@ -92,7 +92,7 @@ python -m assertllm2_sby formal-self-test
 This path uses the spec-only generator and keeps RTL hidden from the model.
 
 ```bash
-export SABLE_ENABLE_CLOUD_LLM=1
+export ASSERTLLM2_SBY_ENABLE_CLOUD_LLM=1
 export ANTHROPIC_API_KEY=...
 
 python -m assertllm2_sby run-design \
@@ -129,12 +129,12 @@ Use `--resume <suite_dir>` to continue a prior suite directory.
 
 ### Cloud LLM generation
 
-- `SABLE_ENABLE_CLOUD_LLM=1` enables Anthropic calls
+- `ASSERTLLM2_SBY_ENABLE_CLOUD_LLM=1` enables Anthropic calls
 - `ANTHROPIC_API_KEY` must be present for the current generation path
-- `SABLE_LLM_MODEL` selects the model
-- `SABLE_LLM_TEMPERATURE` sets generation temperature
-- `SABLE_LLM_MAX_TOKENS` sets the token cap
-- `SABLE_LLM_TIMEOUT` sets the request timeout
+- `ASSERTLLM2_SBY_LLM_MODEL` selects the model
+- `ASSERTLLM2_SBY_LLM_TEMPERATURE` sets generation temperature
+- `ASSERTLLM2_SBY_LLM_MAX_TOKENS` sets the token cap
+- `ASSERTLLM2_SBY_LLM_TIMEOUT` sets the request timeout
 
 ### Contract-inference adapter
 
