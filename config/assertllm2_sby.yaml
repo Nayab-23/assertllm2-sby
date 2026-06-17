@@ -25,6 +25,14 @@ generator:
   attempts_per_design: 1
   retry_count: 0
   thinking: none
+contract_inference:
+  python_entrypoint_env: ASSERTLLM2_SBY_CONTRACT_PYTHON_ENTRYPOINT
+  python_entrypoint: ""
+  executable_env: ASSERTLLM2_SBY_CONTRACT_EXECUTABLE
+  executable: ""
+  tool_root_env: ASSERTLLM2_SBY_CONTRACT_TOOL_ROOT
+  tool_root: ""
+  timeout_seconds: 60
 formal:
   implemented: true
   engine: smtbmc

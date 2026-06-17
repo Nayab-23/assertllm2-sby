@@ -20,6 +20,10 @@ class GenerationBlocked(AdapterError):
 
 class GenerationMode(str, Enum):
     BUG_PREVENTION = "bug-prevention"
+    BUG_PREVENTION_COMPATIBLE = "bug-prevention-compatible"
+    RTL_CONTRACT = "rtl-contract"
+    BUG_HUNTING = "bug-hunting"
+    JUDGE_ONLY = "judge-only"
 
 
 class SpecSource(str, Enum):
@@ -66,6 +70,11 @@ class DesignRecord:
     clocks: tuple[str, ...]
     reset: str | None
     source_language: str
+    defines: tuple[str, ...] = ()
+    parameters: dict[str, Any] = field(default_factory=dict)
+    blackbox_modules: tuple[str, ...] = ()
+    mutation_metadata: dict[str, Any] = field(default_factory=dict)
+    capability: dict[str, Any] = field(default_factory=dict)
     upstream_config: dict[str, Any] = field(default_factory=dict)
     identity: dict[str, Any] = field(default_factory=dict)
 
@@ -83,6 +92,8 @@ class DesignRecord:
             "support_files",
             "mutation_files",
             "clocks",
+            "defines",
+            "blackbox_modules",
         ):
             data[field_name] = [str(x) for x in getattr(self, field_name)]
         if not include_upstream:

@@ -5,7 +5,8 @@ import json
 import os
 from pathlib import Path
 
-from .dataset import discover_designs, get_design
+from .contract_adapter import generate_contract_assertions
+from .dataset import capability_matrix, discover_designs, get_design
 from .generator import generate_assertions
 from .isolation import create_isolated_workspace
 from .manifest import env_flag
@@ -13,6 +14,9 @@ from .models import GenerationMode, SpecSource, ValidationError
 from .real_design import run_design
 from .paths import dotenv_path, results_root, runs_root
 from .self_test import run_formal_self_test
+
+GENERATION_METHODS = ("llm-spec", "contract-inference")
+MODE_CHOICES = [mode.value for mode in GenerationMode]
 
 
 def load_repo_dotenv() -> None:
@@ -42,6 +46,37 @@ def cmd_list_designs(args: argparse.Namespace) -> int:
         for d in designs:
             print(f"{d.key}\t{d.source_language}\t{d.top_module or ''}")
         print(f"count: {len(designs)}")
+    return 0
+
+
+def cmd_capability_matrix(args: argparse.Namespace) -> int:
+    rows = capability_matrix(args.checkout)
+    if args.json:
+        _print_json({"count": len(rows), "capability_matrix": rows})
+    else:
+        columns = [
+            "key",
+            "source_language",
+            "rtl_file_count",
+            "single_clock",
+            "multi_clock",
+            "combinational",
+            "parameterized",
+            "blackbox_required",
+            "has_complete_mutants",
+            "scoreable",
+            "unsupported_reasons",
+        ]
+        print("\t".join(columns))
+        for row in rows:
+            values = []
+            for column in columns:
+                value = row[column]
+                if isinstance(value, list):
+                    value = ",".join(str(v) for v in value)
+                values.append(str(value))
+            print("\t".join(values))
+        print(f"count: {len(rows)}")
     return 0
 
 
@@ -89,6 +124,19 @@ def cmd_prepare_input(args: argparse.Namespace) -> int:
 
 def cmd_generate(args: argparse.Namespace) -> int:
     d = get_design(args.design, args.checkout)
+    if args.method == "contract-inference":
+        result = generate_contract_assertions(
+            d,
+            mode=GenerationMode(args.mode),
+            output_dir=args.output_root,
+            config={
+                "python_entrypoint": args.contract_python_entrypoint,
+                "executable": args.contract_executable,
+                "tool_root": args.contract_tool_root,
+            },
+        )
+        _print_json(result.to_json())
+        return 0 if result.succeeded else 2
     ws = create_isolated_workspace(
         d,
         mode=GenerationMode(args.mode),
@@ -142,6 +190,12 @@ def cmd_run_design(args: argparse.Namespace) -> int:
         output_root=args.output_root or results_root(),
         reuse_generation_artifacts=args.reuse_generation_artifacts,
         max_mutants=args.max_mutants,
+        method=args.method,
+        contract_config={
+            "python_entrypoint": args.contract_python_entrypoint,
+            "executable": args.contract_executable,
+            "tool_root": args.contract_tool_root,
+        },
     )
     _print_json({
         "run_id": result["run_id"],
@@ -162,6 +216,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_list_designs)
 
+    p = sub.add_parser("capability-matrix")
+    _checkout_arg(p)
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_capability_matrix)
+
     p = sub.add_parser("inspect-design")
     _checkout_arg(p)
     p.add_argument("--design", required=True)
@@ -176,17 +235,23 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("run-design")
     _checkout_arg(p)
-    p.add_argument("--mode", choices=[GenerationMode.BUG_PREVENTION.value], required=True)
+    p.add_argument("--method", choices=GENERATION_METHODS, default="llm-spec")
+    p.add_argument("--mode", choices=MODE_CHOICES, required=True)
     p.add_argument("--design", required=True)
     p.add_argument("--output-root", type=Path, default=None)
     p.add_argument("--reuse-generation-artifacts", type=Path, default=None)
     p.add_argument("--max-mutants", type=int, default=1)
+    p.add_argument("--contract-python-entrypoint", default=None)
+    p.add_argument("--contract-executable", default=None)
+    p.add_argument("--contract-tool-root", default=None)
     p.set_defaults(func=cmd_run_design)
 
     for name, func in (("prepare-input", cmd_prepare_input), ("generate", cmd_generate)):
         p = sub.add_parser(name)
         _checkout_arg(p)
-        p.add_argument("--mode", choices=[GenerationMode.BUG_PREVENTION.value], required=True)
+        if name == "generate":
+            p.add_argument("--method", choices=GENERATION_METHODS, default="llm-spec")
+        p.add_argument("--mode", choices=MODE_CHOICES, required=True)
         p.add_argument("--design", required=True)
         p.add_argument("--spec-source", choices=["spec_md", "raw"], default="spec_md")
         p.add_argument("--output-root", type=Path, default=runs_root())
@@ -196,6 +261,9 @@ def build_parser() -> argparse.ArgumentParser:
             p.add_argument("--model", default=None)
             p.add_argument("--temperature", type=float, default=None)
             p.add_argument("--max-tokens", type=int, default=None)
+            p.add_argument("--contract-python-entrypoint", default=None)
+            p.add_argument("--contract-executable", default=None)
+            p.add_argument("--contract-tool-root", default=None)
         p.set_defaults(func=func)
     return parser
 

@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .assertion_lowering import classify_and_lower_assertion
+from .contract_adapter import generate_contract_assertions
 from .formal_types import FormalConfig, FormalResult, FormalStatus, FormalTask, LoweredAssertion, SourcePlan
 from .generator import generate_assertions, load_generation_result_from_artifacts
 from .isolation import create_isolated_workspace, validate_workspace_isolation
@@ -19,7 +20,8 @@ from .manifest import read_json, repo_state, sha256_file, write_json
 from .models import AssertionCandidate, DesignRecord, GenerationMode, GenerationResult, SpecSource, ValidationError
 from .runtime_config import generator_defaults
 from .sby_backend import run_sby_task
-from .source_plan import build_source_plan
+from .harness_builder import yosys_script_lines
+from .source_plan import build_source_plan, source_plan_artifact, write_blackbox_stubs
 
 from .paths import PACKAGE_ROOT, config_path, resolve_assertllm2_checkout, results_root
 
@@ -32,6 +34,8 @@ GOLDEN_STATUS_MAP = {
     FormalStatus.TIMEOUT: "GOLDEN_TIMEOUT",
     FormalStatus.UNKNOWN: "GOLDEN_UNKNOWN",
     FormalStatus.ERROR: "GOLDEN_ERROR",
+    FormalStatus.ELABORATION_ERROR: "GOLDEN_ELABORATION_ERROR",
+    FormalStatus.INFRASTRUCTURE_ERROR: "GOLDEN_INFRASTRUCTURE_ERROR",
 }
 
 
@@ -163,16 +167,6 @@ def build_property_harness(plan: SourcePlan, lowered: LoweredAssertion, clock: s
     return "\n".join(lines)
 
 
-def _read_verilog_command(plan: SourcePlan) -> str:
-    parts = ["read_verilog -formal -sv"]
-    for incdir in plan.include_dirs:
-        parts.append(f"-I{incdir}")
-    for define in plan.defines:
-        parts.append(f"-D{define}")
-    parts.extend(str(path) for path in plan.rtl_files)
-    return " ".join(parts)
-
-
 def run_yosys_elaboration(plan: SourcePlan, outdir: Path) -> dict[str, Any]:
     outdir.mkdir(parents=True, exist_ok=True)
     ports = parse_ports(plan)
@@ -180,15 +174,24 @@ def run_yosys_elaboration(plan: SourcePlan, outdir: Path) -> dict[str, Any]:
     dummy = LoweredAssertion("parse_elab", "assert", "assert(1'b1);", "assert(1'b1);", True)
     harness = outdir / "parse_harness.sv"
     harness.write_text(build_property_harness(plan, dummy, clock), encoding="utf-8")
+    blackbox_stub = write_blackbox_stubs(plan, outdir)
+    extra_files = tuple(path for path in (harness, blackbox_stub) if path is not None)
     log = outdir / "yosys_parse_elab.log"
     cmd = [
         "yosys",
         "-p",
-        f"{_read_verilog_command(plan)} {harness}; prep -top sby_harness",
+        "; ".join(yosys_script_lines(plan, extra_files=extra_files, top_module="sby_harness")),
     ]
     proc = subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False)
     log.write_text(proc.stdout, encoding="utf-8")
-    return {"command": " ".join(cmd), "returncode": proc.returncode, "passed": proc.returncode == 0, "log": str(log)}
+    return {
+        "command": " ".join(cmd),
+        "returncode": proc.returncode,
+        "passed": proc.returncode == 0,
+        "log": str(log),
+        "blackbox_stub_file": str(blackbox_stub) if blackbox_stub else None,
+        "generated_files": [str(path) for path in extra_files],
+    }
 
 
 def mutation_dirs(design: DesignRecord) -> list[Path]:
@@ -214,6 +217,8 @@ def mutant_source_plan(golden: SourcePlan, mutant_dir: Path) -> SourcePlan:
         rtl_files=tuple(replacements),
         include_dirs=golden.include_dirs,
         defines=golden.defines,
+        parameters=golden.parameters,
+        blackbox_modules=golden.blackbox_modules,
     )
 
 
@@ -226,6 +231,8 @@ def _golden_counts(rows: list[dict[str, Any]]) -> dict[str, int]:
         "GOLDEN_TIMEOUT",
         "GOLDEN_UNKNOWN",
         "GOLDEN_ERROR",
+        "GOLDEN_ELABORATION_ERROR",
+        "GOLDEN_INFRASTRUCTURE_ERROR",
     ]
     counts = {key: 0 for key in keys}
     for row in rows:
@@ -244,6 +251,10 @@ def _mutant_status(golden: str, result: FormalResult) -> str:
         return "UNKNOWN"
     if result.status == FormalStatus.UNSUPPORTED:
         return "UNSUPPORTED"
+    if result.status == FormalStatus.INFRASTRUCTURE_ERROR:
+        return "INFRASTRUCTURE_ERROR"
+    if result.status == FormalStatus.ELABORATION_ERROR:
+        return "ELABORATION_ERROR"
     return "ELABORATION_ERROR"
 
 
@@ -263,6 +274,25 @@ def _float_env(name: str, default: float) -> float:
 
 def model_configuration(gen: GenerationResult) -> dict[str, Any]:
     defaults = generator_defaults()
+    if gen.metadata.get("adapter_generator") == "contract_inference":
+        return {
+            "provider": "contract-inference",
+            "model": gen.metadata.get("model"),
+            "temperature": None,
+            "max_tokens": None,
+            "configured_max_output_tokens": None,
+            "timeout_seconds": None,
+            "api_url_env": None,
+            "api_version": None,
+            "prompt_template": None,
+            "user_prompt_builder": None,
+            "attempts_per_design": 1,
+            "retry_count": 0,
+            "thinking": "none",
+            "cloud_gate_env": None,
+            "api_key_env": None,
+            "api_key_value_logged": False,
+        }
     return {
         "provider": gen.metadata.get("provider") or "anthropic",
         "model": gen.metadata.get("model") or os.environ.get("SABLE_LLM_MODEL") or defaults["model"],
@@ -300,6 +330,8 @@ def run_design(
     transport: Callable[[str, str, dict[str, Any]], dict[str, Any]] | None = None,
     reuse_generation_artifacts: Path | None = None,
     max_mutants: int | None = 1,
+    method: str = "llm-spec",
+    contract_config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     config = config or FormalConfig()
     resolved_output_root = output_root or results_root()
@@ -318,30 +350,42 @@ def run_design(
     failures: list[str] = []
 
     stages.append("dataset_lookup")
-    stages.append("create_isolated_workspace")
-    workspace = create_isolated_workspace(
-        design,
-        mode=mode,
-        spec_source=SpecSource.SPEC_MD,
-        output_root=outdir / "isolated_input",
-        generator_config={"spec_source": "spec_md"},
-    )
-    validate_workspace_isolation(workspace.root)
-    shutil.copy2(workspace.manifest_path, outdir / "isolated_input_manifest.json")
+    gen: GenerationResult
+    if method == "contract-inference":
+        stages.append("contract_inference_generation")
+        gen = generate_contract_assertions(
+            design,
+            mode=mode,
+            output_dir=outdir / "generation_artifacts",
+            config=contract_config,
+        )
+    elif method == "llm-spec":
+        stages.append("create_isolated_workspace")
+        workspace = create_isolated_workspace(
+            design,
+            mode=mode,
+            spec_source=SpecSource.SPEC_MD,
+            output_root=outdir / "isolated_input",
+            generator_config={"spec_source": "spec_md"},
+        )
+        validate_workspace_isolation(workspace.root)
+        shutil.copy2(workspace.manifest_path, outdir / "isolated_input_manifest.json")
 
-    stages.append("anthropic_generation")
-    if reuse_generation_artifacts is not None:
-        gen = load_generation_result_from_artifacts(
-            reuse_generation_artifacts,
-            output_dir=outdir / "generation_artifacts",
-        )
+        stages.append("anthropic_generation")
+        if reuse_generation_artifacts is not None:
+            gen = load_generation_result_from_artifacts(
+                reuse_generation_artifacts,
+                output_dir=outdir / "generation_artifacts",
+            )
+        else:
+            gen = generate_assertions(
+                workspace,
+                output_dir=outdir / "generation_artifacts",
+                config=generator_defaults(),
+                transport=transport,
+            )
     else:
-        gen = generate_assertions(
-            workspace,
-            output_dir=outdir / "generation_artifacts",
-            config=generator_defaults(),
-            transport=transport,
-        )
+        raise ValidationError(f"unsupported generation method: {method}")
     if not gen.succeeded:
         failures.append(f"generation failed: {gen.blocked_reason}")
     model_cfg = model_configuration(gen)
@@ -349,6 +393,7 @@ def run_design(
     stages.append("source_planning")
     golden_plan = build_source_plan(design, name=design.key.replace("/", "__"))
     write_json(outdir / "formal" / "golden_source_plan.json", golden_plan.to_json())
+    write_json(outdir / "formal" / "golden_source_plan_artifact.json", source_plan_artifact(golden_plan))
 
     stages.append("yosys_parse_elaboration")
     parse_elab = run_yosys_elaboration(golden_plan, outdir / "formal" / "parse_elaboration")
@@ -390,7 +435,28 @@ def run_design(
                 assertions=(lowered,),
                 workdir=(outdir / "formal" / "golden" / candidate.assertion_id).resolve(),
             )
-            result = run_sby_task(task, config=config, harness_body=build_property_harness(golden_plan, lowered, clock))
+            if clock and config.prefer_bind:
+                result = run_sby_task(task, config=config, clock=clock)
+                if result.status == FormalStatus.ELABORATION_ERROR and (
+                    result.details.get("artifact_generation_error") or result.details.get("bind_checker_removed")
+                ):
+                    wrapper_task = FormalTask(
+                        task_id=f"{task.task_id}_wrapper",
+                        mode=task.mode,
+                        depth=task.depth,
+                        source_plan=task.source_plan,
+                        assertions=task.assertions,
+                        workdir=(task.workdir / "wrapper_fallback").resolve(),
+                    )
+                    result = run_sby_task(
+                        wrapper_task,
+                        config=config,
+                        harness_body=build_property_harness(golden_plan, lowered, clock),
+                        prefer_bind=False,
+                    )
+                    result.details["bind_fallback_from"] = str(task.workdir)
+            else:
+                result = run_sby_task(task, config=config, harness_body=build_property_harness(golden_plan, lowered, clock))
             golden_results.append(result)
             golden_outcome = GOLDEN_STATUS_MAP.get(result.status, "GOLDEN_UNKNOWN")
         else:
@@ -451,7 +517,28 @@ def run_design(
                         assertions=(lowered,),
                         workdir=(outdir / "formal" / "mutants" / selected_mutant.name / row["assertion_id"]).resolve(),
                     )
-                    result = run_sby_task(task, config=config, harness_body=build_property_harness(m_plan, lowered, clock))
+                    if clock and config.prefer_bind:
+                        result = run_sby_task(task, config=config, clock=clock)
+                        if result.status == FormalStatus.ELABORATION_ERROR and (
+                            result.details.get("artifact_generation_error") or result.details.get("bind_checker_removed")
+                        ):
+                            wrapper_task = FormalTask(
+                                task_id=f"{task.task_id}_wrapper",
+                                mode=task.mode,
+                                depth=task.depth,
+                                source_plan=task.source_plan,
+                                assertions=task.assertions,
+                                workdir=(task.workdir / "wrapper_fallback").resolve(),
+                            )
+                            result = run_sby_task(
+                                wrapper_task,
+                                config=config,
+                                harness_body=build_property_harness(m_plan, lowered, clock),
+                                prefer_bind=False,
+                            )
+                            result.details["bind_fallback_from"] = str(task.workdir)
+                    else:
+                        result = run_sby_task(task, config=config, harness_body=build_property_harness(m_plan, lowered, clock))
                     status = _mutant_status(row["golden_outcome"], result)
                     attempt = {
                         "assertion_id": row["assertion_id"],
@@ -487,7 +574,7 @@ def run_design(
     supported_count = sum(1 for row in assertion_rows if row["lowered"]["supported"])
     unsupported_count = len(assertion_rows) - supported_count
     golden_counts = _golden_counts(assertion_rows)
-    mutant_counts = {key: 0 for key in ["STRICT_KILLED", "BOUNDED_ONLY_KILLED", "SURVIVED", "TIMEOUT", "UNKNOWN", "ELABORATION_ERROR", "UNSUPPORTED", "NOT_RUN"]}
+    mutant_counts = {key: 0 for key in ["STRICT_KILLED", "BOUNDED_ONLY_KILLED", "SURVIVED", "TIMEOUT", "UNKNOWN", "ELABORATION_ERROR", "INFRASTRUCTURE_ERROR", "UNSUPPORTED", "NOT_RUN"]}
     for row in mutant_rows:
         mutant_counts[row["status"]] = mutant_counts.get(row["status"], 0) + 1
     completed = bool(gen.succeeded and parse_elab["passed"] and assertion_rows and mutant_rows and mutant_rows[0]["status"] != "NOT_RUN")
@@ -539,6 +626,7 @@ def run_design(
         "run_id": run_id,
         "status": "COMPLETED" if completed else "PARTIAL",
         "mode": mode.value,
+        "method": method,
         "design": design.to_json(include_upstream=False),
         "model_configuration": model_cfg,
         "result_path": str(outdir),

@@ -62,7 +62,7 @@ def create_isolated_workspace(
     output_root: Path | None = None,
     generator_config: dict[str, Any] | None = None,
 ) -> IsolatedWorkspace:
-    if mode != GenerationMode.BUG_PREVENTION:
+    if mode not in {GenerationMode.BUG_PREVENTION, GenerationMode.BUG_PREVENTION_COMPATIBLE}:
         raise ValidationError(f"unsupported generation mode for this stage: {mode.value}")
     if spec_source == SpecSource.RAW and not include_raw:
         raise ValidationError("raw spec source requires include_raw=True")

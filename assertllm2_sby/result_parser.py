@@ -21,8 +21,25 @@ def parse_sby_status(log_text: str, *, mode: str, returncode: int | None, timed_
     text = log_text.lower()
     if timed_out:
         return FormalStatus.TIMEOUT
+    if "infrastructure error:" in text or "command not found" in text or "no such file or directory" in text:
+        return FormalStatus.INFRASTRUCTURE_ERROR
     if "unsupported" in text:
         return FormalStatus.UNSUPPORTED
+    if any(
+        marker in text
+        for marker in (
+            "can't resolve module",
+            "cannot resolve module",
+            "module not found",
+            "unknown module",
+            "not part of the design",
+            "hierarchy command failed",
+            "re-definition of module",
+            "duplicate module",
+            "can't find gold module",
+        )
+    ):
+        return FormalStatus.ELABORATION_ERROR
     if "syntax error" in text or "error:" in text or "failed to" in text:
         if "status: failed" not in text and "returned fail" not in text:
             return FormalStatus.ERROR

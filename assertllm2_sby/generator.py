@@ -11,7 +11,7 @@ import traceback
 from pathlib import Path
 from typing import Any, Callable
 
-from .assertion_parser import extract_assertions
+from .assertion_parser import cleanup_assertion_file, extract_assertions
 from .manifest import env_flag, redacted_mapping, utc_now_iso, write_json
 from .models import AssertionCandidate, AssertionClassification, GenerationBlocked, GenerationResult, IsolatedWorkspace
 from .runtime_config import generator_defaults
@@ -216,6 +216,7 @@ def generate_assertions(
         assertion_text, incomplete_shape = _assertion_text_from_model_text(str(response.get("text") or ""))
         assertions_path = outdir / "extracted_assertions.sv"
         assertions_path.write_text(assertion_text, encoding="utf-8")
+        cleanup_report = cleanup_assertion_file(assertions_path, outdir / "assertions.cleaned.sv")
         candidates_list = extract_assertions(assertion_text)
         appears_truncated = bool(stop_reason == "max_tokens" or incomplete_shape)
         if appears_truncated:
@@ -242,6 +243,7 @@ def generate_assertions(
             "prompt_template": "assertllm2_sby/generator.py::SPEC_ONLY_SYSTEM_PROMPT",
             "user_prompt_builder": "assertllm2_sby/generator.py::_build_user_prompt",
             "usage": response.get("usage"),
+            "syntax_cleanup": cleanup_report,
             "stdout_path": str(outdir / "stdout.txt"),
             "stderr_path": str(outdir / "stderr.txt"),
         })

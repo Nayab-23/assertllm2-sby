@@ -4,9 +4,11 @@ from pathlib import Path
 
 from assertllm2_sby.assertion_lowering import classify_and_lower_assertion
 from assertllm2_sby.formal_types import FormalConfig, FormalResult, FormalStatus, FormalTask, SourcePlan
+from assertllm2_sby.harness_builder import write_bind_checker, write_sby_file
 from assertllm2_sby.sby_backend import run_sby_task
 from assertllm2_sby.mutation_runner import classify_mutant
 from assertllm2_sby.result_parser import parse_sby_status
+from assertllm2_sby.source_plan import blackbox_stub_text, source_plan_artifact
 
 
 def result(task_id: str, status: FormalStatus) -> FormalResult:
@@ -32,6 +34,17 @@ def test_parse_sby_status_cover_and_failures():
     assert parse_sby_status("", mode="bmc", returncode=None, timed_out=True) == FormalStatus.TIMEOUT
 
 
+def test_parse_sby_status_separates_backend_failures():
+    assert (
+        parse_sby_status("ERROR: Module `vendor_ip' referenced in module `top' is not part of the design.", mode="bmc", returncode=1, timed_out=False)
+        == FormalStatus.ELABORATION_ERROR
+    )
+    assert (
+        parse_sby_status("infrastructure error: [Errno 2] No such file or directory: 'sby'", mode="bmc", returncode=None, timed_out=False)
+        == FormalStatus.INFRASTRUCTURE_ERROR
+    )
+
+
 def test_mutant_kill_requires_golden_acceptance_and_mutant_counterexample():
     killed = classify_mutant(
         mutant_id="m",
@@ -50,6 +63,53 @@ def test_mutant_kill_requires_golden_acceptance_and_mutant_counterexample():
     )
     assert not_killed.killed is False
     assert not_killed.responsible_assertion is None
+
+
+def test_phase4_blackbox_stub_and_source_plan_artifact(tmp_path: Path):
+    rtl = tmp_path / "top.sv"
+    rtl.write_text(
+        "module top(input clk, input a, output y);\n"
+        "  vendor_ip u_ip(.clk(clk), .a(a), .y(y));\n"
+        "endmodule\n",
+        encoding="utf-8",
+    )
+    plan = SourcePlan("top", "top", (rtl,), blackbox_modules=("vendor_ip",))
+    stub = blackbox_stub_text(plan)
+    assert "module vendor_ip(clk, a, y);" in stub
+    assert "inout clk;" in stub
+    artifact = source_plan_artifact(plan)
+    assert artifact["rtl_file_order_preserved"] is True
+    assert artifact["blackbox_modules_stubbed"] == ["vendor_ip"]
+
+
+def test_phase4_bind_artifacts_and_sby_script_preserve_sources(tmp_path: Path):
+    rtl = tmp_path / "top.sv"
+    rtl.write_text(
+        "module top #(parameter WIDTH = 2)(input clk, input [WIDTH-1:0] a, output y);\n"
+        "  assign y = a[0];\n"
+        "endmodule\n",
+        encoding="utf-8",
+    )
+    lowered = classify_and_lower_assertion("a_y", "a_y: assert property (@(posedge clk) a[0] |-> y);")
+    assert lowered.supported
+    task = FormalTask(
+        task_id="bind_task",
+        mode="bmc",
+        depth=4,
+        source_plan=SourcePlan("top", "top", (rtl,), parameters={"WIDTH": 4}),
+        assertions=(lowered,),
+        workdir=tmp_path / "work",
+    )
+    artifacts = write_bind_checker(task, clock="clk")
+    sby = write_sby_file(task, artifacts=artifacts, solver="z3", trace=True)
+    checker_text = artifacts.checker_file.read_text(encoding="utf-8") if artifacts.checker_file else ""
+    sby_text = sby.read_text(encoding="utf-8")
+    assert artifacts.strategy == "bind"
+    assert artifacts.bind_file and "bind top" in artifacts.bind_file.read_text(encoding="utf-8")
+    assert "parameter WIDTH = 4" in checker_text
+    assert str(rtl) in sby_text
+    assert str(artifacts.bind_file) in sby_text
+    assert "chparam -set WIDTH 4 top" in sby_text
 
 
 def test_concurrent_property_lowering_strips_trailing_semicolon():

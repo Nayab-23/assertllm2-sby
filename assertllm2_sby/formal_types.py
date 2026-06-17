@@ -15,6 +15,8 @@ class FormalStatus(str, Enum):
     UNKNOWN = "UNKNOWN"
     TIMEOUT = "TIMEOUT"
     ERROR = "ERROR"
+    ELABORATION_ERROR = "ELABORATION_ERROR"
+    INFRASTRUCTURE_ERROR = "INFRASTRUCTURE_ERROR"
     UNSUPPORTED = "UNSUPPORTED"
 
 
@@ -25,8 +27,10 @@ class FormalConfig:
     cover_depth: int = 6
     timeout_seconds: int = 30
     solver: str = "z3"
+    frontend: str = "yosys"
     jobs: int = 1
     trace: bool = True
+    prefer_bind: bool = True
 
     def to_json(self) -> dict[str, Any]:
         return asdict(self)
@@ -39,6 +43,8 @@ class SourcePlan:
     rtl_files: tuple[Path, ...]
     include_dirs: tuple[Path, ...] = ()
     defines: tuple[str, ...] = ()
+    parameters: dict[str, Any] = field(default_factory=dict)
+    blackbox_modules: tuple[str, ...] = ()
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -47,6 +53,8 @@ class SourcePlan:
             "rtl_files": [str(p) for p in self.rtl_files],
             "include_dirs": [str(p) for p in self.include_dirs],
             "defines": list(self.defines),
+            "parameters": self.parameters,
+            "blackbox_modules": list(self.blackbox_modules),
         }
 
 
