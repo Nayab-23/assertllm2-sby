@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "assertllm2-sby"
+version = "0.1.0"
+description = "Open-source Yosys/SymbiYosys formal backend for AssertLLM2-style SVA evaluation"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "python-dotenv>=1.0",
+    "requests>=2.31",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+assertllm2-sby = "assertllm2_sby.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["assertllm2_sby*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
