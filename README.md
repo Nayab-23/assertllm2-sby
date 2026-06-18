@@ -31,6 +31,7 @@ This project is intentionally honest about provenance:
 - `yosys`
 - `sby` / SymbiYosys
 - `z3`
+- `click`
 - `python-dotenv`
 - `requests`
 

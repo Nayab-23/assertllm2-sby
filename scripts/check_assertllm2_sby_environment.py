@@ -46,9 +46,21 @@ def tool_version(tool: str, args: list[str]) -> tuple[str, str]:
         return "WARN" if tool == "boolector" else "FAIL", "not found"
     code, out = run_capture([tool, *args])
     if code != 0:
-        detail = out.splitlines()[0] if out else f"{tool} exited {code}"
+        detail = summarize_command_failure(out, fallback=f"{tool} exited {code}")
         return "FAIL", detail
     return "PASS", out.splitlines()[0] if out else f"{tool} exited 0"
+
+
+def summarize_command_failure(output: str, *, fallback: str) -> str:
+    lines = [line.strip() for line in output.splitlines() if line.strip()]
+    if not lines:
+        return fallback
+    for line in reversed(lines):
+        if line.startswith(("ModuleNotFoundError:", "ImportError:", "FileNotFoundError:", "PermissionError:")):
+            return line
+        if line.startswith(("ERROR:", "Error:", "error:")):
+            return line
+    return lines[0]
 
 
 def config_values(path: Path) -> dict[str, str]:

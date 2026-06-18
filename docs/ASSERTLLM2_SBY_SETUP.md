@@ -27,6 +27,9 @@ The environment is created from:
 Install missing Python dependencies only after activating this environment. Do
 not install AssertLLM2-SBY test dependencies into the global Python.
 
+`click` is installed by the Python package because Homebrew's `sby` wrapper
+imports it through the active virtualenv's `python3`.
+
 ## Generation Runtime
 
 For a real generation call, the current adapter uses the Anthropic client
