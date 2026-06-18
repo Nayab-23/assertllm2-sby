@@ -1,0 +1,21 @@
+{
+  "adapter_generator": "contract_inference",
+  "completed_at": "2026-06-18T09:17:04+00:00",
+  "exception": "[Errno 21] Is a directory: '/Users/nayab/assertllm2-sby/results/video_stream_scaler/one_design_video_stream_scaler_20260618T091704Z/generation_artifacts/sable_probe/attempt0/src'",
+  "exception_type": "IsADirectoryError",
+  "generator_config": {
+    "executable": "",
+    "executable_env": "ASSERTLLM2_SBY_CONTRACT_EXECUTABLE",
+    "python_entrypoint": "assertllm2_sby.sable_assertneuro_adapter:infer",
+    "python_entrypoint_env": "ASSERTLLM2_SBY_CONTRACT_PYTHON_ENTRYPOINT",
+    "timeout_seconds": 60,
+    "tool_root": "",
+    "tool_root_env": "ASSERTLLM2_SBY_CONTRACT_TOOL_ROOT"
+  },
+  "mode": "rtl-contract",
+  "request_path": "/Users/nayab/assertllm2-sby/results/video_stream_scaler/one_design_video_stream_scaler_20260618T091704Z/generation_artifacts/contract_request.json",
+  "runtime_s": 0.01,
+  "source_visibility_manifest": "/Users/nayab/assertllm2-sby/results/video_stream_scaler/one_design_video_stream_scaler_20260618T091704Z/generation_artifacts/source_visibility_manifest.json",
+  "started_at": "2026-06-18T09:17:04+00:00",
+  "traceback": "Traceback (most recent call last):\n  File \"/Users/nayab/assertllm2-sby/AssertLLM2/assertllm2_sby/contract_adapter.py\", line 257, in generate_contract_assertions\n    response = _call_python_entrypoint(str(cfg[\"python_entrypoint\"]), request, outdir)\n  File \"/Users/nayab/assertllm2-sby/AssertLLM2/assertllm2_sby/contract_adapter.py\", line 129, in _call_python_entrypoint\n    response = func(request, outdir)\n  File \"/Users/nayab/assertllm2-sby/AssertLLM2/assertllm2_sby/sable_assertneuro_adapter.py\", line 285, in infer\n    ports, probe_output = oc.probe_ports(\n                          ~~~~~~~~~~~~~~^\n        normalized[\"primary_rtl\"],\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^\n    ...<3 lines>...\n        blackbox_sink=blackboxed,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"/Users/nayab/Downloads/Neuro/AssertNeuro/polaris-sable/sable/oracle_contracts.py\", line 1842, in probe_ports\n    rc, out = _materialize_and_probe(attempt)\n              ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^\n  File \"/Users/nayab/Downloads/Neuro/AssertNeuro/polaris-sable/sable/oracle_contracts.py\", line 1812, in _materialize_and_probe\n    source_files, include_dirs = materialize_sources(\n                                 ~~~~~~~~~~~~~~~~~~~^\n        source_files0, header_files, repo_root, sub, blackbox_sink=blackbox_sink,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    ...<2 lines>...\n        harvest_sink=harvest_sink,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"/Users/nayab/Downloads/Neuro/AssertNeuro/polaris-sable/sable/oracle_contracts.py\", line 1016, in materialize_sources\n    target.write_text(_txt)\n    ~~~~~~~~~~~~~~~~~^^^^^^\n  File \"/opt/homebrew/Cellar/python@3.14/3.14.5/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py\", line 809, in write_text\n    with self.open(mode='w', encoding=encoding, errors=errors, newline=newline) as f:\n         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/homebrew/Cellar/python@3.14/3.14.5/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py\", line 771, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nIsADirectoryError: [Errno 21] Is a directory: '/Users/nayab/assertllm2-sby/results/video_stream_scaler/one_design_video_stream_scaler_20260618T091704Z/generation_artifacts/sable_probe/attempt0/src'\n"
+}

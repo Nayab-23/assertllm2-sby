@@ -1,0 +1,38 @@
+{
+  "adapter": "AssertLLM2-SBY",
+  "blackbox_modules": [],
+  "buggy_rtl_files": [],
+  "category": "VIDEO_CONTROLLER",
+  "clean_rtl_visible_to_generator": true,
+  "clocks": [
+    "clk"
+  ],
+  "defines": [],
+  "design_key": "assertllm2/video_controller/video_stream_scaler",
+  "design_name": "video_stream_scaler",
+  "include_dirs": [],
+  "merged_buggy_rtl_dirs": [],
+  "mode": "rtl-contract",
+  "parameters": {
+    "BUFFER_SIZE": "4",
+    "BUFFER_SIZE_WIDTH": "((BUFFER_SIZE+1) <= 2) ? 1 :\t\n\t\t\t\t\t\t\t\t\t((BUFFER_SIZE+1) <= 4) ? 2 :\n\t\t\t\t\t\t\t\t\t((BUFFER_SIZE+1) <= 8) ? 3 :\n\t\t\t\t\t\t\t\t\t((BUFFER_SIZE+1) <= 16) ? 4 :\n\t\t\t\t\t\t\t\t\t((BUFFER_SIZE+1) <= 32) ? 5 :\n\t\t\t\t\t\t\t\t\t((BUFFER_SIZE+1) <= 64) ? 6 : 7",
+    "CHANNELS": "1",
+    "COEFF_WIDTH": "FRACTION_BITS + 1",
+    "DATA_WIDTH": "8",
+    "DISCARD_CNT_WIDTH": "8",
+    "FRACTION_BITS": "8",
+    "INPUT_X_RES_WIDTH": "11",
+    "INPUT_Y_RES_WIDTH": "11",
+    "OUTPUT_X_RES_WIDTH": "11",
+    "OUTPUT_Y_RES_WIDTH": "11",
+    "SCALE_BITS": "SCALE_INT_BITS + SCALE_FRAC_BITS",
+    "SCALE_FRAC_BITS": "14",
+    "SCALE_INT_BITS": "4"
+  },
+  "reset": "rst",
+  "rtl_files": [
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/VIDEO_CONTROLLER/video_stream_scaler/streamScaler.v"
+  ],
+  "schema_version": "1.0",
+  "top_module": "streamScaler"
+}

@@ -1,0 +1,35 @@
+{
+  "adapter": "AssertLLM2-SBY",
+  "buggy_rtl_visible_to_generator": false,
+  "clean_rtl_visible_to_generator": true,
+  "created_at": "2026-06-18T09:17:04+00:00",
+  "design_key": "assertllm2/video_controller/video_stream_scaler",
+  "mode": "rtl-contract",
+  "official_jaspergold_result": false,
+  "rtl_visible_to_generator": true,
+  "schema_version": "1.0",
+  "visible_buggy_rtl_files": [],
+  "visible_files": [
+    {
+      "path": "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/VIDEO_CONTROLLER/video_stream_scaler/spec.md",
+      "relpath": "spec.md",
+      "role": "spec_md",
+      "sha256": "b6947ab05a6b0ae2acd3befe8381d97d1da76cb02593ebc3115b1bb513ef5509",
+      "size": 11025
+    },
+    {
+      "path": "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/VIDEO_CONTROLLER/video_stream_scaler/Video_Stream_Scaler_Specifications.pdf",
+      "relpath": "Video_Stream_Scaler_Specifications.pdf",
+      "role": "raw_spec",
+      "sha256": "138c70c1c2657ff7c044f62b01c30096d1fb42ed247237ab680ea3db69d0f866",
+      "size": 239471
+    },
+    {
+      "path": "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/VIDEO_CONTROLLER/video_stream_scaler/streamScaler.v",
+      "relpath": "streamScaler.v",
+      "role": "rtl",
+      "sha256": "ff6bd0688752df676b2f9b39bd45712cbb0939bbfba3d22daca5b9fddb97b06c",
+      "size": 26640
+    }
+  ]
+}

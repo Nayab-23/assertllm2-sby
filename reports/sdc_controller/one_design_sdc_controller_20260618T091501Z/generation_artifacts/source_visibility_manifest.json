@@ -1,0 +1,161 @@
+{
+  "adapter": "AssertLLM2-SBY",
+  "buggy_rtl_visible_to_generator": false,
+  "clean_rtl_visible_to_generator": true,
+  "created_at": "2026-06-18T09:15:01+00:00",
+  "design_key": "assertllm2/communication_controller/sdc_controller",
+  "mode": "rtl-contract",
+  "official_jaspergold_result": false,
+  "rtl_visible_to_generator": true,
+  "schema_version": "1.0",
+  "visible_buggy_rtl_files": [],
+  "visible_files": [
+    {
+      "path": "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/spec.md",
+      "relpath": "spec.md",
+      "role": "spec_md",
+      "sha256": "3499da8d2ada911071b58c5d036cfdb3c661fcb957f88576ed012c95c5923045",
+      "size": 33693
+    },
+    {
+      "path": "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/Design_SDC_MMC_controller.pdf",
+      "relpath": "Design_SDC_MMC_controller.pdf",
+      "role": "raw_spec",
+      "sha256": "de388c5ea3b80bf9ceb8aa4aef40823348cd40864320fc6aecff39d7f3753d57",
+      "size": 421767
+    },
+    {
+      "path": "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/sdc_controller.v",
+      "relpath": "sdc_controller.v",
+      "role": "rtl",
+      "sha256": "e413c2a8c3b0427a7bf66ddab0edc5380a4b48ea3ae0bcdade4cc100ee291120",
+      "size": 13728
+    },
+    {
+      "path": "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sd_bd.v",
+      "relpath": "include/sd_bd.v",
+      "role": "rtl",
+      "sha256": "c8785650b4737387ddabff1a9889f793bd0f867b33af0ecb5613737c68e9be42",
+      "size": 3541
+    },
+    {
+      "path": "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sd_clock_divider.v",
+      "relpath": "include/sd_clock_divider.v",
+      "role": "rtl",
+      "sha256": "17989453ae16ed0d2322462ddacf9290ea9a2f8f8411fef09d7a407ae1c0b163",
+      "size": 632
+    },
+    {
+      "path": "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sd_cmd_master.v",
+      "relpath": "include/sd_cmd_master.v",
+      "role": "rtl",
+      "sha256": "84843a9a21de8f14569f08d4e25beb76d993743b5c1a3410441da7d4dba0aafc",
+      "size": 5932
+    },
+    {
+      "path": "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sd_cmd_serial_host.v",
+      "relpath": "include/sd_cmd_serial_host.v",
+      "role": "rtl",
+      "sha256": "b4cdd2afe9427cd11da4bc6fbf3e06b0c459f59e3a0bd56afb4c0236eda9d2c7",
+      "size": 12334
+    },
+    {
+      "path": "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sd_controller_wb.v",
+      "relpath": "include/sd_controller_wb.v",
+      "role": "rtl",
+      "sha256": "40870f4a43a0d141f3d8a5f93ab9036d316e0d541dc5ced336cfc1db40c27b83",
+      "size": 8718
+    },
+    {
+      "path": "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sd_crc_16.v",
+      "relpath": "include/sd_crc_16.v",
+      "role": "rtl",
+      "sha256": "b317f1172f3b6f67f81fed1e5fb545887b559f0213339765e9d0648cf08c06c0",
+      "size": 1493
+    },
+    {
+      "path": "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sd_crc_7.v",
+      "relpath": "include/sd_crc_7.v",
+      "role": "rtl",
+      "sha256": "76fedbd8b7440381e845d40f1dee599705c55d0ce62b8be499b074b0b6821f62",
+      "size": 829
+    },
+    {
+      "path": "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sd_data_master.v",
+      "relpath": "include/sd_data_master.v",
+      "role": "rtl",
+      "sha256": "462df218d8aa94dd0ad17f58294d6ee3fc840c7e9fa3e6eba42c623427dffba7",
+      "size": 11698
+    },
+    {
+      "path": "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sd_data_serial_host.v",
+      "relpath": "include/sd_data_serial_host.v",
+      "role": "rtl",
+      "sha256": "da8c156366be058cf13fe170ecc3b3e2c288b9fafe87adf0feea8462429e124a",
+      "size": 9902
+    },
+    {
+      "path": "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sd_defines.v",
+      "relpath": "include/sd_defines.v",
+      "role": "rtl",
+      "sha256": "14445e92c921cda8a7f590c6aa9cd11301073a1532391d801681dd39e6f0632f",
+      "size": 1421
+    },
+    {
+      "path": "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sd_fifo_rx_filler.v",
+      "relpath": "include/sd_fifo_rx_filler.v",
+      "role": "rtl",
+      "sha256": "9b11d7ed9587547aca1497db6e0b399618461cf2ce06843736d741a09adaa57c",
+      "size": 1665
+    },
+    {
+      "path": "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sd_fifo_tx_filler.v",
+      "relpath": "include/sd_fifo_tx_filler.v",
+      "role": "rtl",
+      "sha256": "70f8f71ed6b12ba0a367e57a309fcc6ba0eca4af060b125edb0aecfa6a9c99b2",
+      "size": 1801
+    },
+    {
+      "path": "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sd_rx_fifo.v",
+      "relpath": "include/sd_rx_fifo.v",
+      "role": "rtl",
+      "sha256": "b973074784326f38d501261ffba3389b501390f40784617ba3590cb6627f202e",
+      "size": 3193
+    },
+    {
+      "path": "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sd_tx_fifo.v",
+      "relpath": "include/sd_tx_fifo.v",
+      "role": "rtl",
+      "sha256": "993f0ac1fce9fb756df805c24aa81f1945f42972f5c5091538eea057333be178",
+      "size": 2032
+    },
+    {
+      "path": "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sdc_controller_ref.sv",
+      "relpath": "include/sdc_controller_ref.sv",
+      "role": "rtl",
+      "sha256": "1ef716feed7002877b6b45b3a9e5dd30b4d4ce49ee05f192a65d027f129951c4",
+      "size": 16443
+    },
+    {
+      "path": "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sdc_controller_stimulus_gen.sv",
+      "relpath": "include/sdc_controller_stimulus_gen.sv",
+      "role": "rtl",
+      "sha256": "81bf47b8c0afcadd3159f79a0a634a7775fbedd46e86cee58222ae4322b37b9a",
+      "size": 3573
+    },
+    {
+      "path": "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sdc_controller_testbench.sv",
+      "relpath": "include/sdc_controller_testbench.sv",
+      "role": "rtl",
+      "sha256": "c197fb09db81e5d3fe12a352b68f7b5a5ad1c3495942e92b44f256e5374041f3",
+      "size": 18602
+    },
+    {
+      "path": "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sdc_controller_top.sv",
+      "relpath": "include/sdc_controller_top.sv",
+      "role": "rtl",
+      "sha256": "db5b97a13fa048383b4b69390168257b851480207d4676d5c4b48ce5affb57e0",
+      "size": 16440
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "adapter": "AssertLLM2-SBY",
+  "blackbox_modules": [],
+  "buggy_rtl_files": [],
+  "category": "ARITHMETIC_CORE",
+  "clean_rtl_visible_to_generator": true,
+  "clocks": [
+    "wb_clk_i"
+  ],
+  "defines": [],
+  "design_key": "assertllm2/arithmetic_core/orsoc_graphics_accelerator",
+  "design_name": "orsoc_graphics_accelerator",
+  "include_dirs": [
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/ARITHMETIC_CORE/orsoc_graphics_accelerator/include"
+  ],
+  "merged_buggy_rtl_dirs": [],
+  "mode": "rtl-contract",
+  "parameters": {},
+  "reset": "wb_rst_i",
+  "rtl_files": [
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/ARITHMETIC_CORE/orsoc_graphics_accelerator/gfx_top.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/ARITHMETIC_CORE/orsoc_graphics_accelerator/include/basic_fifo.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/ARITHMETIC_CORE/orsoc_graphics_accelerator/include/div_uu.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/ARITHMETIC_CORE/orsoc_graphics_accelerator/include/gfx_blender.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/ARITHMETIC_CORE/orsoc_graphics_accelerator/include/gfx_clip.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/ARITHMETIC_CORE/orsoc_graphics_accelerator/include/gfx_color.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/ARITHMETIC_CORE/orsoc_graphics_accelerator/include/gfx_cuvz.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/ARITHMETIC_CORE/orsoc_graphics_accelerator/include/gfx_fragment_processor.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/ARITHMETIC_CORE/orsoc_graphics_accelerator/include/gfx_interp.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/ARITHMETIC_CORE/orsoc_graphics_accelerator/include/gfx_line.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/ARITHMETIC_CORE/orsoc_graphics_accelerator/include/gfx_params.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/ARITHMETIC_CORE/orsoc_graphics_accelerator/include/gfx_rasterizer.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/ARITHMETIC_CORE/orsoc_graphics_accelerator/include/gfx_renderer.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/ARITHMETIC_CORE/orsoc_graphics_accelerator/include/gfx_transform.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/ARITHMETIC_CORE/orsoc_graphics_accelerator/include/gfx_triangle.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/ARITHMETIC_CORE/orsoc_graphics_accelerator/include/gfx_wbm_read.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/ARITHMETIC_CORE/orsoc_graphics_accelerator/include/gfx_wbm_read_arbiter.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/ARITHMETIC_CORE/orsoc_graphics_accelerator/include/gfx_wbm_write.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/ARITHMETIC_CORE/orsoc_graphics_accelerator/include/gfx_wbs.v"
+  ],
+  "schema_version": "1.0",
+  "top_module": "gfx_top"
+}

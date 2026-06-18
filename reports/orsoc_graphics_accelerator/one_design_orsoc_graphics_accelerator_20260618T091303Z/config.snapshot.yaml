@@ -1,0 +1,45 @@
+# AssertLLM2-SBY adapter defaults.
+# This file is intentionally free of secrets.
+
+official_checkout: third_party/AssertLLM2
+default_mode: bug-prevention
+default_spec_source: spec_md
+output_root: runs/assertllm2-sby
+generator:
+  provider: anthropic
+  model_env: ASSERTLLM2_SBY_LLM_MODEL
+  model_default: claude-sonnet-4-6
+  temperature_env: ASSERTLLM2_SBY_LLM_TEMPERATURE
+  temperature_default: 0.0
+  max_tokens_env: ASSERTLLM2_SBY_LLM_MAX_TOKENS
+  max_tokens_default: 4096
+  timeout_env: ASSERTLLM2_SBY_LLM_TIMEOUT
+  timeout_seconds_default: 30
+  api_url_env: ANTHROPIC_API_URL
+  api_url_default: https://api.anthropic.com/v1/messages
+  api_version: "2023-06-01"
+  enable_cloud_env: ASSERTLLM2_SBY_ENABLE_CLOUD_LLM
+  api_key_env: ANTHROPIC_API_KEY
+  prompt_template: AssertLLM2/assertllm2_sby/generator.py::SPEC_ONLY_SYSTEM_PROMPT
+  user_prompt_builder: AssertLLM2/assertllm2_sby/generator.py::_build_user_prompt
+  attempts_per_design: 1
+  retry_count: 0
+  thinking: none
+contract_inference:
+  python_entrypoint_env: ASSERTLLM2_SBY_CONTRACT_PYTHON_ENTRYPOINT
+  python_entrypoint: ""
+  executable_env: ASSERTLLM2_SBY_CONTRACT_EXECUTABLE
+  executable: ""
+  tool_root_env: ASSERTLLM2_SBY_CONTRACT_TOOL_ROOT
+  tool_root: ""
+  timeout_seconds: 60
+formal:
+  implemented: true
+  engine: smtbmc
+  solver: z3
+  bmc_depth_default: 8
+  prove_depth_default: 8
+  cover_depth_default: 6
+  timeout_seconds_default: 30
+  jobs_default: 1
+  trace_default: true

@@ -1,0 +1,43 @@
+{
+  "adapter": "AssertLLM2-SBY",
+  "blackbox_modules": [],
+  "buggy_rtl_files": [],
+  "category": "COMMUNICATION_CONTROLLER",
+  "clean_rtl_visible_to_generator": true,
+  "clocks": [
+    "wb_clk_i"
+  ],
+  "defines": [],
+  "design_key": "assertllm2/communication_controller/sdc_controller",
+  "design_name": "sdc_controller",
+  "include_dirs": [
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include"
+  ],
+  "merged_buggy_rtl_dirs": [],
+  "mode": "rtl-contract",
+  "parameters": {},
+  "reset": "wb_rst_i",
+  "rtl_files": [
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/sdc_controller.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sd_bd.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sd_clock_divider.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sd_cmd_master.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sd_cmd_serial_host.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sd_controller_wb.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sd_crc_16.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sd_crc_7.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sd_data_master.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sd_data_serial_host.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sd_defines.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sd_fifo_rx_filler.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sd_fifo_tx_filler.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sd_rx_fifo.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sd_tx_fifo.v",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sdc_controller_ref.sv",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sdc_controller_stimulus_gen.sv",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sdc_controller_testbench.sv",
+    "/Users/nayab/assertllm2-sby/third_party/AssertLLM2/designs/COMMUNICATION_CONTROLLER/sdc_controller/include/sdc_controller_top.sv"
+  ],
+  "schema_version": "1.0",
+  "top_module": "sdc_controller"
+}
