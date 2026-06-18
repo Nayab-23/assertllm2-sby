@@ -115,6 +115,29 @@ python -m assertllm2_sby run-design \
   --contract-python-entrypoint your_module:your_function
 ```
 
+For the local AssertNeuro / Sable integration in this repo:
+
+```bash
+export ASSERTNEURO_ROOT=/Users/nayab/Downloads/Neuro/AssertNeuro/polaris-sable
+export PYTHONPATH="$ASSERTNEURO_ROOT:$PYTHONPATH"
+
+python -m assertllm2_sby run-design \
+  --method contract-inference \
+  --mode rtl-contract \
+  --design assertllm2/communication_controller/uart_to_bus \
+  --contract-python-entrypoint assertllm2_sby.sable_assertneuro_adapter:infer
+```
+
+The adapter writes Sable debug artifacts under the run's
+`generation_artifacts/` directory, including the normalized request,
+project-mode config, raw Sable analysis record, copied Sable workdir, and
+the exported `contract_response.json`.
+
+`assertllm2/communication_controller/uart_to_bus` is the current local smoke
+target for this integration because it exports a standalone Sable-derived
+assertion through the adapter. Other designs may analyze successfully in Sable
+but produce only contract classes that this backend does not lower yet.
+
 ### Suite runs
 
 ```bash

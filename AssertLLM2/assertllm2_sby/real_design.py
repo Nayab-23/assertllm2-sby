@@ -94,6 +94,18 @@ def _top_module_header(plan: SourcePlan) -> tuple[str, str]:
     return module.group("params") or "", module.group("ports")
 
 
+def _top_module_text(plan: SourcePlan) -> str:
+    decl_text = _clean_verilog_text(plan)
+    module = re.search(
+        rf"\bmodule\s+{re.escape(plan.top_module)}\b(?P<body>.*?)\bendmodule\b",
+        decl_text,
+        re.DOTALL,
+    )
+    if not module:
+        raise ValidationError(f"could not parse top module body: {plan.top_module}")
+    return module.group(0)
+
+
 def parse_parameters(plan: SourcePlan) -> tuple[Parameter, ...]:
     params, _ = _top_module_header(plan)
     out: list[Parameter] = []
@@ -106,7 +118,7 @@ def parse_parameters(plan: SourcePlan) -> tuple[Parameter, ...]:
 
 
 def parse_ports(plan: SourcePlan) -> tuple[Port, ...]:
-    decl_text = _clean_verilog_text(plan)
+    module_text = _top_module_text(plan)
     _, port_text = _top_module_header(plan)
     port_names = []
     for raw_port in port_text.replace("\n", " ").split(","):
@@ -120,7 +132,7 @@ def parse_ports(plan: SourcePlan) -> tuple[Port, ...]:
     ports: dict[str, Port] = {}
 
     decl_re = re.compile(r"\b(input|output|inout)\s+(?:reg\s+|wire\s+|logic\s+)?(\[[^;\]]+:[^;\]]+\]\s+)?([^;]+);")
-    for match in decl_re.finditer(decl_text):
+    for match in decl_re.finditer(module_text):
         direction = match.group(1)
         width = (match.group(2) or "").strip()
         for raw in match.group(3).split(","):
