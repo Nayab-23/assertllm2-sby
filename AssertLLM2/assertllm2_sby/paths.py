@@ -13,6 +13,7 @@ def resolve_assertllm2_checkout() -> Path:
     candidates = (
         PACKAGE_ROOT / "third_party" / "AssertLLM2",
         PACKAGE_ROOT.parent / "third_party" / "AssertLLM2",
+        PACKAGE_ROOT / "assertllm2-sby" / "third_party" / "AssertLLM2",
     )
     for path in candidates:
         if path.is_symlink() and not path.exists():
@@ -28,10 +29,7 @@ def resolve_assertllm2_checkout() -> Path:
         nested_config = resolved / "AssertLLM2" / "configs" / "assertllm2_design_configs.json"
         if direct_config.is_file() or nested_config.is_file():
             return resolved
-        raise ValidationError(
-            "AssertLLM2 checkout is missing configs/assertllm2_design_configs.json "
-            f"or AssertLLM2/configs/assertllm2_design_configs.json: {resolved}"
-        )
+        continue
     searched = ", ".join(str(path) for path in candidates)
     raise ValidationError(f"AssertLLM2 checkout not found; searched: {searched}")
 

@@ -6,4 +6,6 @@ __pycache__/
 .DS_Store
 runs/
 results/
+reports/
 third_party/AssertLLM2/
+*.egg-info/

@@ -1,4 +1,4 @@
-"""AssertLLM2-SBY dataset and generation adapter."""
+"""AssertLLM2-SBY dataset, generation, and contract backend package."""
 
 from .dataset import discover_designs, load_design_index
 

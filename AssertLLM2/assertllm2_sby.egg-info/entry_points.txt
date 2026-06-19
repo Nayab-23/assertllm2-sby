@@ -1,2 +1,0 @@
-[console_scripts]
-assertllm2-sby = assertllm2_sby.cli:main

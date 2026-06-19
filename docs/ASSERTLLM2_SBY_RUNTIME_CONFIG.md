@@ -1,6 +1,6 @@
 # AssertLLM2-SBY Runtime Configuration
 
-Recorded on 2026-06-17 from the current adapter code, `AssertLLM2/configs/assertllm2_sby.yaml`,
+Recorded on 2026-06-17 from the current repository code, `AssertLLM2/configs/assertllm2_sby.yaml`,
 and `vendor/llm_client.py`.
 
 ## Python Runtime
@@ -14,7 +14,7 @@ and `vendor/llm_client.py`.
 ## Assertion Generation
 
 - Provider: Anthropic Messages API through `vendor/llm_client.py`
-- Adapter transport: `AssertLLM2/assertllm2_sby/generator.py::_anthropic_transport`
+- Generator transport: `AssertLLM2/assertllm2_sby/generator.py::_anthropic_transport`
 - Default model ID: `claude-sonnet-4-6`
 - Model override env var: `ASSERTLLM2_SBY_LLM_MODEL`
 - Default temperature: `0.0`
@@ -29,11 +29,11 @@ and `vendor/llm_client.py`.
 - Thinking/reasoning configuration: none. The request body contains `model`,
   `max_tokens`, `temperature`, `system`, and `messages`; it does not set a
   thinking or reasoning field.
-- Retry count: `0`. Neither the adapter transport nor `vendor/llm_client.py`
+- Retry count: `0`. Neither the generator transport nor `vendor/llm_client.py`
   implements a retry loop for this path.
-- Generation attempts per design: `1` per adapter `generate` invocation.
+- Generation attempts per design: `1` per `generate` invocation.
 - Optional call provenance log: `ASSERTLLM2_SBY_LLM_LOG`, written by `vendor/llm_client.py`
-  when that module's logging helper is used. The AssertLLM2-SBY adapter writes
+  when that module's logging helper is used. The AssertLLM2-SBY generator writes
   its own generation artifacts under the selected output directory.
 
 ## Changing The Generation Model
@@ -80,7 +80,7 @@ The API-key value, prefix, length, and hash are not recorded.
 
 The official AssertLLM2 `plain_prompt` templates remain in the upstream checkout
 under `third_party/AssertLLM2/AssertLLM2/assertbench/methods/plain_prompt/`, but
- this adapter does not use them for the current Anthropic generation path.
+this generator does not use them for the current Anthropic generation path.
 
 ## Secret Loading And Cloud Gate
 
@@ -92,7 +92,7 @@ under `third_party/AssertLLM2/AssertLLM2/assertbench/methods/plain_prompt/`, but
   with `python-dotenv` and `override=False`. `vendor/llm_client.py`
   still reads the resulting process environment.
 - Secret storage policy: API-key values must not be written to config, manifests,
-  prompts, logs, or reports. Adapter config redaction covers keys matching API
+  prompts, logs, or reports. Generator config redaction covers keys matching API
   key, token, secret, password, and credential patterns.
 
 With `ASSERTLLM2_SBY_ENABLE_CLOUD_LLM=1` but no `ANTHROPIC_API_KEY`, generation still

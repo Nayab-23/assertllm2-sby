@@ -1,9 +1,9 @@
 # AssertLLM2-SBY Setup
 
 This stage uses the read-only official checkout at `third_party/AssertLLM2` and
-keeps adapter code outside that checkout.
+keeps backend code outside that checkout.
 
-Default adapter config lives at `AssertLLM2/configs/assertllm2_sby.yaml`. It intentionally
+Default backend config lives at `AssertLLM2/configs/assertllm2_sby.yaml`. It intentionally
 contains no secrets.
 
 ## Python Environment
@@ -29,7 +29,7 @@ not install AssertLLM2-SBY test dependencies into the global Python.
 
 ## Generation Runtime
 
-For a real generation call, the current adapter uses the Anthropic client
+For a real generation call, the current generator uses the Anthropic client
 settings exposed by this repository:
 
 ```bash
@@ -56,7 +56,7 @@ writes a blocked generation manifest instead of fabricating assertions.
 empty, or `0` values block cloud-model calls. The AssertLLM2-SBY CLI loads the
 repository-root `.env` once with `python-dotenv` and `override=False`;
 `ANTHROPIC_API_KEY` is then read from the process environment by the bundled
-client. The adapter must not print API-key values.
+client. The backend must not print API-key values.
 
 Anthropic performs assertion generation only. SymbiYosys/Yosys/Z3 perform formal
 evaluation. The current formal backend is enabled after passing the synthetic

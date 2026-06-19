@@ -27,7 +27,7 @@ generator:
   thinking: none
 contract_inference:
   python_entrypoint_env: ASSERTLLM2_SBY_CONTRACT_PYTHON_ENTRYPOINT
-  python_entrypoint: ""
+  python_entrypoint: assertllm2_sby.contract_backend:infer
   executable_env: ASSERTLLM2_SBY_CONTRACT_EXECUTABLE
   executable: ""
   tool_root_env: ASSERTLLM2_SBY_CONTRACT_TOOL_ROOT
