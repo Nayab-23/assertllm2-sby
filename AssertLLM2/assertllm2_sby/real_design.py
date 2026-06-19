@@ -131,17 +131,21 @@ def parse_ports(plan: SourcePlan) -> tuple[Port, ...]:
             port_names.append(name)
     ports: dict[str, Port] = {}
 
-    decl_re = re.compile(r"\b(input|output|inout)\s+(?:reg\s+|wire\s+|logic\s+)?(\[[^;\]]+:[^;\]]+\]\s+)?([^;]+);")
+    decl_re = re.compile(
+        r"\b(input|output|inout)\s+(?:(?:reg|wire|logic|tri)\s+)*(signed\s+)?(\[[^;\]]+:[^;\]]+\]\s+)?([^;]+);"
+    )
     for match in decl_re.finditer(module_text):
         direction = match.group(1)
-        width = (match.group(2) or "").strip()
-        for raw in match.group(3).split(","):
+        width = (match.group(3) or "").strip()
+        for raw in match.group(4).split(","):
             name = raw.strip().split("=")[0].strip()
             name = re.sub(r"\s+", " ", name).split(" ")[-1]
             if name in port_names:
                 ports[name] = Port(name=name, direction=direction, width=width)
 
-    ansi_re = re.compile(r"\b(input|output|inout)\s+(?:reg\s+|wire\s+|logic\s+)?(\[[^\]]+\]\s+)?([A-Za-z_]\w*)")
+    ansi_re = re.compile(
+        r"\b(input|output|inout)\s+(?:(?:reg|wire|logic|tri)\s+)*(?:signed\s+)?(\[[^\]]+\]\s+)?([A-Za-z_]\w*)"
+    )
     for match in ansi_re.finditer(port_text):
         name = match.group(3)
         if name in port_names:
@@ -169,6 +173,8 @@ def build_property_harness(plan: SourcePlan, lowered: LoweredAssertion, clock: s
         width = f" {port.width}" if port.width else ""
         if port.direction == "input":
             lines.append(f"  (* anyseq *) reg{width} {port.name};")
+        elif port.direction == "inout":
+            lines.append(f"  tri{width} {port.name};")
         else:
             lines.append(f"  wire{width} {port.name};")
     lines.append("")
@@ -188,6 +194,57 @@ def build_property_harness(plan: SourcePlan, lowered: LoweredAssertion, clock: s
     lines.append("  end")
     lines.append("endmodule")
     return "\n".join(lines)
+
+
+_ASSERTION_IDENTIFIER_RE = re.compile(r"\b[A-Za-z_][A-Za-z0-9_$]*\b")
+_ASSERTION_NON_SIGNAL_TOKENS = {
+    "assert",
+    "property",
+    "cover",
+    "assume",
+    "posedge",
+    "negedge",
+    "disable",
+    "iff",
+    "if",
+    "else",
+    "begin",
+    "end",
+    "or",
+    "and",
+    "not",
+    "true",
+    "false",
+    "past",
+    "rose",
+    "fell",
+    "stable",
+    "changed",
+    "sampled",
+    "signed",
+    "unsigned",
+    "bits",
+    "onehot",
+    "onehot0",
+    "isunknown",
+    "countones",
+}
+
+
+def internal_signal_references(plan: SourcePlan, assertion_text: str) -> tuple[str, ...]:
+    text = re.sub(r"^\s*[A-Za-z_][A-Za-z0-9_$]*\s*:\s*", "", assertion_text or "")
+    allowed = {port.name for port in parse_ports(plan)}
+    allowed.update(parameter.name for parameter in parse_parameters(plan))
+    internal: list[str] = []
+    for token in _ASSERTION_IDENTIFIER_RE.findall(text):
+        lowered = token.lower()
+        if lowered in _ASSERTION_NON_SIGNAL_TOKENS:
+            continue
+        if token in allowed:
+            continue
+        if token not in internal:
+            internal.append(token)
+    return tuple(internal)
 
 
 def run_yosys_elaboration(plan: SourcePlan, outdir: Path) -> dict[str, Any]:
@@ -450,6 +507,7 @@ def run_design(
             )
         result: FormalResult | None = None
         if lowered.supported and parse_elab["passed"] and gen.succeeded:
+            internal_refs = internal_signal_references(golden_plan, candidate.text)
             task = FormalTask(
                 task_id=f"golden_{candidate.assertion_id}",
                 mode="cover" if lowered.kind == "cover" else "bmc",
@@ -457,8 +515,12 @@ def run_design(
                 source_plan=golden_plan,
                 assertions=(lowered,),
                 workdir=(outdir / "formal" / "golden" / candidate.assertion_id).resolve(),
+                signal_scope="internal" if internal_refs else "interface",
+                referenced_internal_signals=internal_refs,
             )
-            if clock and config.prefer_bind:
+            if task.signal_scope == "internal":
+                result = run_sby_task(task, config=config, clock=clock)
+            elif clock and config.prefer_bind:
                 result = run_sby_task(task, config=config, clock=clock)
                 if result.status == FormalStatus.ELABORATION_ERROR and (
                     result.details.get("artifact_generation_error") or result.details.get("bind_checker_removed")
@@ -547,6 +609,7 @@ def run_design(
                         transformation_rule=lowered_payload.get("transformation_rule"),
                         equivalence_assumptions=tuple(lowered_payload.get("equivalence_assumptions") or ()),
                     )
+                    internal_refs = internal_signal_references(m_plan, row["original_text"])
                     task = FormalTask(
                         task_id=f"mutant_{selected_mutant.mutant_id}_{row['assertion_id']}",
                         mode="bmc",
@@ -554,8 +617,12 @@ def run_design(
                         source_plan=m_plan,
                         assertions=(lowered,),
                         workdir=(outdir / "formal" / "mutants" / selected_mutant.mutant_id / row["assertion_id"]).resolve(),
+                        signal_scope="internal" if internal_refs else "interface",
+                        referenced_internal_signals=internal_refs,
                     )
-                    if clock and config.prefer_bind:
+                    if task.signal_scope == "internal":
+                        result = run_sby_task(task, config=config, clock=clock)
+                    elif clock and config.prefer_bind:
                         result = run_sby_task(task, config=config, clock=clock)
                         if result.status == FormalStatus.ELABORATION_ERROR and (
                             result.details.get("artifact_generation_error") or result.details.get("bind_checker_removed")
@@ -676,6 +743,7 @@ def run_design(
                             transformation_rule=lowered_payload.get("transformation_rule"),
                             equivalence_assumptions=tuple(lowered_payload.get("equivalence_assumptions") or ()),
                         )
+                        internal_refs = internal_signal_references(buggy_plan, row["original_text"])
                         task = FormalTask(
                             task_id=f"bug_hunting_{merged_dir.name}_{row['assertion_id']}",
                             mode="bmc",
@@ -683,8 +751,12 @@ def run_design(
                             source_plan=buggy_plan,
                             assertions=(lowered,),
                             workdir=(outdir / "formal" / "bug_hunting" / merged_dir.name / row["assertion_id"]).resolve(),
+                            signal_scope="internal" if internal_refs else "interface",
+                            referenced_internal_signals=internal_refs,
                         )
-                        if clock and config.prefer_bind:
+                        if task.signal_scope == "internal":
+                            result = run_sby_task(task, config=config, clock=clock)
+                        elif clock and config.prefer_bind:
                             result = run_sby_task(task, config=config, clock=clock)
                             if result.status == FormalStatus.ELABORATION_ERROR and (
                                 result.details.get("artifact_generation_error") or result.details.get("bind_checker_removed")

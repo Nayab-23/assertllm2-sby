@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 
 from .formal_types import FormalConfig, FormalResult, FormalStatus, FormalTask
-from .harness_builder import write_bind_checker, write_sby_file, write_wrapper_artifacts
+from .harness_builder import write_bind_checker, write_internal_injected_checker, write_sby_file, write_wrapper_artifacts
 from .manifest import write_json
 from .result_parser import collect_trace_files, parse_sby_status
 
@@ -68,7 +68,11 @@ def run_sby_task(
     task.workdir.mkdir(parents=True, exist_ok=True)
     requested_bind = config.prefer_bind if prefer_bind is None else prefer_bind
     try:
-        if harness_body is None and requested_bind and clock:
+        if task.signal_scope == "internal":
+            if not clock:
+                raise ValueError("clock is required for internal-signal assertions")
+            artifacts = write_internal_injected_checker(task, clock=clock)
+        elif harness_body is None and requested_bind and clock:
             artifacts = write_bind_checker(task, clock=clock)
         elif harness_body is not None:
             artifacts = write_wrapper_artifacts(task, harness_body)
@@ -92,6 +96,8 @@ def run_sby_task(
             assertion_ids=tuple(item.assertion_id for item in task.assertions),
             details={
                 "artifact_generation_error": str(exc),
+                "signal_scope": task.signal_scope,
+                "referenced_internal_signals": list(task.referenced_internal_signals),
                 "compatibility_status": _compatibility_status(FormalStatus.ELABORATION_ERROR),
             },
         )
@@ -131,6 +137,8 @@ def run_sby_task(
             details={
                 "timed_out": False,
                 "artifact_strategy": artifacts.strategy,
+                "signal_scope": task.signal_scope,
+                "referenced_internal_signals": list(task.referenced_internal_signals),
                 "generated_files": [str(path) for path in artifacts.generated_files],
                 "compatibility_status": _compatibility_status(FormalStatus.INFRASTRUCTURE_ERROR),
             },
@@ -173,6 +181,8 @@ def run_sby_task(
             "checker_file": str(artifacts.checker_file) if artifacts.checker_file else None,
             "blackbox_stub_file": str(artifacts.blackbox_stub_file) if artifacts.blackbox_stub_file else None,
             "trace_count": len(traces),
+            "signal_scope": task.signal_scope,
+            "referenced_internal_signals": list(task.referenced_internal_signals),
             "compatibility_status": _compatibility_status(status),
             "bind_checker_removed": bind_checker_removed,
             **artifact_details,

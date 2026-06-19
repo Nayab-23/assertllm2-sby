@@ -8,7 +8,7 @@ from assertllm2_sby.harness_builder import write_bind_checker, write_sby_file
 from assertllm2_sby.sby_backend import run_sby_task
 from assertllm2_sby.mutation_runner import classify_mutant
 from assertllm2_sby.result_parser import parse_sby_status
-from assertllm2_sby.source_plan import blackbox_stub_text, source_plan_artifact
+from assertllm2_sby.source_plan import blackbox_stub_text, parse_ports, source_plan_artifact
 
 
 def result(task_id: str, status: FormalStatus) -> FormalResult:
@@ -110,6 +110,57 @@ def test_phase4_bind_artifacts_and_sby_script_preserve_sources(tmp_path: Path):
     assert str(rtl) in sby_text
     assert str(artifacts.bind_file) in sby_text
     assert "chparam -set WIDTH 4 top" in sby_text
+
+
+def test_internal_signal_assertions_use_injected_strategy(tmp_path: Path):
+    rtl = tmp_path / "counter.sv"
+    rtl.write_text(
+        "module counter(input clk, input rst, output reg done);\n"
+        "  reg [1:0] state;\n"
+        "  always @(posedge clk) begin\n"
+        "    if (rst) begin\n"
+        "      state <= 2'd0;\n"
+        "      done <= 1'b0;\n"
+        "    end else begin\n"
+        "      state <= state + 2'd1;\n"
+        "      done <= (state == 2'd2);\n"
+        "    end\n"
+        "  end\n"
+        "endmodule\n",
+        encoding="utf-8",
+    )
+    lowered = classify_and_lower_assertion(
+        "state_reset",
+        "state_reset: assert property (@(posedge clk) state <= 3);",
+    )
+    assert lowered.supported
+    task = FormalTask(
+        task_id="internal_scope",
+        mode="bmc",
+        depth=4,
+        source_plan=SourcePlan("counter", "counter", (rtl,)),
+        assertions=(lowered,),
+        workdir=tmp_path / "work",
+        signal_scope="internal",
+        referenced_internal_signals=("state",),
+    )
+    result = run_sby_task(task, config=FormalConfig(), clock="clk")
+    assert result.status == FormalStatus.BOUNDED_CLEAN
+    assert result.details["artifact_strategy"] == "internal_injected"
+    assert result.details["signal_scope"] == "internal"
+    assert result.details["referenced_internal_signals"] == ["state"]
+
+
+def test_parse_ports_preserves_tri_inout_width(tmp_path: Path):
+    rtl = tmp_path / "bus_top.v"
+    rtl.write_text(
+        "module bus_top(input clk, inout tri [7:0] db, output rdy);\n"
+        "endmodule\n",
+        encoding="utf-8",
+    )
+    ports = {port.name: port for port in parse_ports(SourcePlan("bus_top", "bus_top", (rtl,)))}
+    assert ports["db"].direction == "inout"
+    assert ports["db"].width == "[7:0]"
 
 
 def test_concurrent_property_lowering_strips_trailing_semicolon():

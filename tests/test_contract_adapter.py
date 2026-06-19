@@ -170,3 +170,65 @@ def test_cli_generate_contract_inference(tmp_path: Path, capsys):
     out = json.loads(capsys.readouterr().out)
     assert out["succeeded"] is True
     assert Path(out["assertions_path"]).name == "assertions.sv"
+
+
+def test_contract_internal_export_keeps_internal_signal_assertions():
+    from assertllm2_sby import contract_internal_adapter as adapter
+
+    class FakeOracle:
+        _ACC_RE = __import__("re").compile(r"([A-Za-z_]\w*)\s*<=\s*\1\s*\+\s*([A-Za-z_0-9']+)\s*;")
+
+        @staticmethod
+        def is_active_low_reset(_name: str | None) -> bool:
+            return False
+
+        @staticmethod
+        def _module_body(text: str, _module_name: str) -> str:
+            return text
+
+        @staticmethod
+        def _fsm_encoding_set_expr(reg: str, encodings: dict[int, str]) -> str:
+            return "(" + " || ".join(f"{reg}=={value}" for value in sorted(encodings)) + ")"
+
+    normalized = {
+        "primary_rtl": "/tmp/fake_ft816.v",
+        "top_module": "FT816Float",
+        "clock": "clk",
+        "reset": "rst",
+    }
+    record = {
+        "arithmetic": {
+            "properties": {
+                "accumulator_integrity": {"confirmed": True},
+            }
+        },
+        "fsm": {
+            "interface": {"reg": "state", "encodings": {"0": "RESET", "1": "RUN"}, "init_state": 0},
+            "properties": {
+                "legal_transition": {"confirmed": True},
+                "reset_correctness": {"confirmed": True},
+            },
+        },
+        "blackboxed_modules": [],
+    }
+    source = Path(normalized["primary_rtl"])
+    source.write_text(
+        "module FT816Float(input clk, input rst);\n"
+        "  reg [7:0] state;\n"
+        "  reg [7:0] cyccnt;\n"
+        "  always @(posedge clk) cyccnt <= cyccnt + 1;\n"
+        "endmodule\n",
+        encoding="utf-8",
+    )
+    try:
+        assertions, report = adapter._export_assertions(FakeOracle, normalized, record)
+    finally:
+        source.unlink(missing_ok=True)
+
+    assert [row["label"] for row in assertions] == [
+        "accumulator_integrity",
+        "legal_transition",
+        "reset_correctness",
+    ]
+    assert report["skipped"] == []
+    assert "$fell" not in assertions[2]["sva"]

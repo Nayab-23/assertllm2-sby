@@ -98,17 +98,21 @@ def parse_ports(plan: SourcePlan) -> tuple[Port, ...]:
             port_names.append(name)
     ports: dict[str, Port] = {}
 
-    decl_re = re.compile(r"\b(input|output|inout)\s+(?:reg\s+|wire\s+|logic\s+)?(\[[^;\]]+:[^;\]]+\]\s+)?([^;]+);")
+    decl_re = re.compile(
+        r"\b(input|output|inout)\s+(?:(?:reg|wire|logic|tri)\s+)*(signed\s+)?(\[[^;\]]+:[^;\]]+\]\s+)?([^;]+);"
+    )
     for match in decl_re.finditer(module_text):
         direction = match.group(1)
-        width = (match.group(2) or "").strip()
-        for raw in match.group(3).split(","):
+        width = (match.group(3) or "").strip()
+        for raw in match.group(4).split(","):
             name = raw.strip().split("=")[0].strip()
             name = re.sub(r"\s+", " ", name).split(" ")[-1]
             if name in port_names:
                 ports[name] = Port(name=name, direction=direction, width=width)
 
-    ansi_re = re.compile(r"\b(input|output|inout)\s+(?:reg\s+|wire\s+|logic\s+)?(\[[^\]]+\]\s+)?([A-Za-z_]\w*)")
+    ansi_re = re.compile(
+        r"\b(input|output|inout)\s+(?:(?:reg|wire|logic|tri)\s+)*(?:signed\s+)?(\[[^\]]+\]\s+)?([A-Za-z_]\w*)"
+    )
     for match in ansi_re.finditer(port_text):
         name = match.group(3)
         if name in port_names:

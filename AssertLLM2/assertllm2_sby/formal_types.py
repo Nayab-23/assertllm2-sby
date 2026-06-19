@@ -82,6 +82,8 @@ class FormalTask:
     assertions: tuple[LoweredAssertion, ...]
     workdir: Path
     top_module: str = "sby_harness"
+    signal_scope: str = "interface"
+    referenced_internal_signals: tuple[str, ...] = ()
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -92,6 +94,8 @@ class FormalTask:
             "assertions": [a.to_json() for a in self.assertions],
             "workdir": str(self.workdir),
             "top_module": self.top_module,
+            "signal_scope": self.signal_scope,
+            "referenced_internal_signals": list(self.referenced_internal_signals),
         }
 
 

@@ -12,7 +12,7 @@ from assertllm2_sby.coverage import checker_coi_summary
 from assertllm2_sby.formal_types import LoweredAssertion, SourcePlan
 from assertllm2_sby.models import DesignRecord, GenerationMode
 from assertllm2_sby.mutation_runner import load_mutation_cache, mutant_source_plan as cache_mutant_source_plan
-from assertllm2_sby.real_design import build_property_harness, mutant_source_plan, parse_ports, run_design
+from assertllm2_sby.real_design import build_property_harness, internal_signal_references, mutant_source_plan, parse_ports, run_design
 from assertllm2_sby.runtime_config import generator_defaults
 
 
@@ -150,6 +150,19 @@ def test_parse_ports_parameterized_ansi_header(tmp_path: Path):
     assert "localparam WIDTH = 8;" in harness
     assert "wire [WIDTH-1:0] data_o;" in harness
     assert "(* anyseq *) reg [WIDTH-1:0] data_i;" in harness
+
+
+def test_internal_signal_reference_detection(tmp_path: Path):
+    rtl = tmp_path / "fsm.v"
+    rtl.write_text(
+        "module fsm(input clk, input rst, output reg done);\n"
+        "  reg [1:0] state;\n"
+        "endmodule\n",
+        encoding="utf-8",
+    )
+    plan = SourcePlan("fsm", "fsm", (rtl,))
+    assert internal_signal_references(plan, "p: assert property (@(posedge clk) done |-> done);") == ()
+    assert internal_signal_references(plan, "p: assert property (@(posedge clk) rst |-> state == 0);") == ("state",)
 
 
 def test_extract_property_definition_from_partial_fenced_json():
