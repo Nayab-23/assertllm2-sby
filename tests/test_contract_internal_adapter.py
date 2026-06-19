@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from assertllm2_sby.assertion_lowering import classify_and_lower_assertion
-import assertllm2_sby.sable_assertneuro_adapter as sable_adapter
-from assertllm2_sby.sable_assertneuro_adapter import (
+import assertllm2_sby.contract_internal_adapter as contract_adapter
+from assertllm2_sby.contract_internal_adapter import (
     _access_hit_assertion,
     _memory_request_assertion,
     _stable_assertion,
@@ -63,7 +63,7 @@ def test_memory_request_assertion_skips_without_stall_signal():
     assert row is None
 
 
-def test_infer_returns_empty_response_when_sable_has_no_supported_channels(tmp_path, monkeypatch):
+def test_infer_returns_empty_response_when_contract_backend_has_no_supported_channels(tmp_path, monkeypatch):
     rtl = tmp_path / "tiny.v"
     rtl.write_text("module tiny(input clk, input rst); endmodule\n", encoding="utf-8")
 
@@ -74,7 +74,7 @@ def test_infer_returns_empty_response_when_sable_has_no_supported_channels(tmp_p
         def __exit__(self, exc_type, exc, tb):
             return False
 
-    class FakeSable:
+    class FakeContractBackend:
         def project_context(self, config):
             return FakeProjectContext()
 
@@ -98,7 +98,8 @@ def test_infer_returns_empty_response_when_sable_has_no_supported_channels(tmp_p
         def is_active_low_reset(self, reset_name):
             return False
 
-    monkeypatch.setattr(sable_adapter, "_load_sable_modules", lambda: (FakeSable(), tmp_path))
+    monkeypatch.setattr(contract_adapter, "_load_oracle_contracts", lambda root: (FakeContractBackend(), tmp_path))
+    monkeypatch.setattr(contract_adapter, "_discover_contract_root", lambda: tmp_path)
 
     response = infer(
         {
